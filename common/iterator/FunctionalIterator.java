@@ -39,6 +39,8 @@ public interface FunctionalIterator<T> extends Iterator<T> {
 
     <U> FunctionalIterator<U> flatMap(Function<T, FunctionalIterator<U>> flatMappingFn);
 
+    <U, K extends Comparable<K>> Sorted<U, K> flatMerge(Function<T, Sorted<U, K>> flatMappingFn, Function<U, K> keyExtractor);
+
     FunctionalIterator<T> filter(Predicate<T> predicate);
 
     FunctionalIterator<T> offset(long offset);
@@ -86,4 +88,28 @@ public interface FunctionalIterator<T> extends Iterator<T> {
     FunctionalIterator<T> onFinalise(Runnable function);
 
     void recycle();
+
+    interface Sorted<T, K extends Comparable<K>> extends FunctionalIterator<T> {
+
+        Function<T, K> keyExtractor();
+
+        void seek(T target); // TODO maybe this should return a boolean
+
+        T peek();
+
+        Sorted<T, K> merge(Sorted<T, K>... iterators);
+
+        Sorted<T, K> distinct();
+
+        Sorted<T, K> filter(Predicate<T> predicate);
+
+//        Sorted<T, K> offset(long offset);
+//
+//        Sorted<T, K> onConsumed(Runnable function);
+//
+//        Sorted<T, K> onError(Function<Exception, TypeDBException> exceptionFn);
+//
+//        Sorted<T, K> onFinalise(Runnable function);
+
+    }
 }

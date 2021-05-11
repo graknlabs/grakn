@@ -42,6 +42,10 @@ public class Iterators {
         return iterate(set());
     }
 
+    public static <T, K extends Comparable<K>> FunctionalIterator.Sorted<T, K> emptySorted(Function<T, K> keyExtractor) {
+        return iterateSorted(set(), keyExtractor);
+    }
+
     public static <T> FunctionalIterator<T> single(T item) {
         return iterate(set(item));
     }
@@ -57,6 +61,30 @@ public class Iterators {
 
     public static <T> FunctionalIterator<T> iterate(Iterator<T> iterator) {
         return new BaseIterator<>(Either.second(iterator));
+    }
+
+    public static <T, K extends Comparable<K>> boolean validateSortedIterable(Collection<T> collection, Function<T, K> keyFn) {
+        if (collection.isEmpty()) return true;
+        Iterator<T> iter = collection.iterator();
+        K last = keyFn.apply(iter.next());
+        while (iter.hasNext()) {
+            T val = iter.next();
+            K newKey = keyFn.apply(val);
+            if (newKey.compareTo(last) < 0) return false;
+            last = newKey;
+        }
+        return true;
+    }
+
+    public static <T, K extends Comparable<K>> FunctionalIterator.Sorted<T, K> iterateSorted(Collection<T> sortedCollection,
+                                                                                             Function<T, K> keyExtractor) {
+        assert validateSortedIterable(sortedCollection, keyExtractor);
+        return iterateSorted(sortedCollection.iterator(), keyExtractor);
+    }
+
+    public static <T, K extends Comparable<K>> FunctionalIterator.Sorted<T, K> iterateSorted(Iterator<T> sortedIterator,
+                                                                                             Function<T, K> keyExtractor) {
+        return new BaseIterator.Sorted<>(sortedIterator, keyExtractor);
     }
 
     public static <T> FunctionalIterator<T> link(Iterator<? extends T> iter1, Iterator<? extends T> iter2) {

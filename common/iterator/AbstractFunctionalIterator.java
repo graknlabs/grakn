@@ -21,6 +21,7 @@ package com.vaticle.typedb.core.common.iterator;
 import com.vaticle.typedb.core.common.exception.TypeDBException;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -35,6 +36,7 @@ import java.util.stream.StreamSupport;
 
 import static com.vaticle.typedb.common.collection.Collections.list;
 import static com.vaticle.typedb.core.common.iterator.Iterators.iterate;
+import static com.vaticle.typedb.core.common.iterator.Iterators.single;
 import static java.util.Spliterator.IMMUTABLE;
 import static java.util.Spliterator.ORDERED;
 import static java.util.Spliterators.spliteratorUnknownSize;
@@ -59,6 +61,12 @@ public abstract class AbstractFunctionalIterator<T> implements FunctionalIterato
     @Override
     public <U> FunctionalIterator<U> flatMap(Function<T, FunctionalIterator<U>> flatMappingFn) {
         return new FlatMappedIterator<>(this, flatMappingFn);
+    }
+
+    @Override
+    public <U, K extends Comparable<K>> FunctionalIterator.Sorted<U, K> flatMerge(Function<T, FunctionalIterator.Sorted<U, K>> flatMappingFn,
+                                                                                  Function<U, K> keyExtractor) {
+        return new FlatMergeSortedIterator<>(this, flatMappingFn, keyExtractor);
     }
 
     @Override
@@ -227,4 +235,66 @@ public abstract class AbstractFunctionalIterator<T> implements FunctionalIterato
 
     @Override
     public abstract void recycle();
+
+    public static abstract class Sorted<T, K extends Comparable<K>> extends AbstractFunctionalIterator<T> implements FunctionalIterator.Sorted<T, K> {
+
+        private final Function<T, K> keyExtractor;
+
+        Sorted(Function<T, K> keyExtractor) {
+            this.keyExtractor = keyExtractor;
+        }
+
+        @Override
+        public Function<T, K> keyExtractor() {
+            return keyExtractor;
+        }
+
+        @Override
+        public void seek(T target) {
+            K targetKey = keyExtractor.apply(target);
+            while (hasNext()) {
+                if (keyExtractor.apply(peek()).compareTo(targetKey) > 0) return;
+                else next();
+            }
+        }
+
+        @SafeVarargs
+        @Override
+        public final FunctionalIterator.Sorted<T, K> merge(FunctionalIterator.Sorted<T, K>... iterators) {
+            List<FunctionalIterator.Sorted<T, K>> iters = list(list(iterators), this);
+            return new FlatMergeSortedIterator<>(iterate(iters), e -> e, keyExtractor);
+        }
+
+        @Override
+        public FunctionalIterator.Sorted<T, K> distinct() {
+            return new DistinctIterator.Sorted<>(this, keyExtractor);
+        }
+
+        @Override
+        public FunctionalIterator.Sorted<T, K> filter(Predicate<T> predicate) {
+            return new FilteredIterator.Sorted<>(this, keyExtractor, predicate);
+        }
+
+//        @Override
+//        public FunctionalIterator.Sorted<T, K> offset(long offset) {
+//
+//        }
+//
+//        @Override
+//        public FunctionalIterator.Sorted<T, K> onConsumed(Runnable function) {
+//
+//        }
+//
+//        @Override
+//        public FunctionalIterator.Sorted<T, K> onError(Function<Exception, TypeDBException> exceptionFn) {
+//
+//        }
+//
+//        @Override
+//        public FunctionalIterator.Sorted<T, K> onFinalise(Runnable function) {
+//
+//        }
+
+
+    }
 }
