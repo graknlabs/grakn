@@ -22,6 +22,7 @@ import com.vaticle.typedb.core.common.exception.TypeDBException;
 import com.vaticle.typedb.core.common.iterator.AbstractFunctionalIterator;
 import com.vaticle.typedb.core.common.iterator.FunctionalIterator;
 import com.vaticle.typedb.core.graph.GraphManager;
+import com.vaticle.typedb.core.graph.adjacency.ThingAdjacency;
 import com.vaticle.typedb.core.graph.edge.ThingEdge;
 import com.vaticle.typedb.core.graph.vertex.ThingVertex;
 import com.vaticle.typedb.core.traversal.Traversal;
@@ -49,7 +50,7 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
     private final GraphManager graphMgr;
 
     private final Map<Identifier, ThingVertex> answer;
-    private final Map<Identifier, FunctionalIterator.Sorted<ThingEdge>> iterators;
+    private final Map<Identifier, FunctionalIterator.Sorted<ThingAdjacency.EdgeDirected>> iterators;
     private Identifier.Variable relationId;
     private State state;
 
@@ -85,7 +86,7 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
         assert withoutIID.size() == 1;
         relationId = withoutIID.iterator().next();
         for (Identifier.Variable withIID : parameters.withIID()) {
-            ThingVertex thingVertex = graphMgr.data().get(parameters.getIID(withIID));
+            ThingVertex thingVertex = graphMgr.data().getReadable(parameters.getIID(withIID));
             if (thingVertex == null) return false;
             answer.put(withIID, thingVertex);
         }
