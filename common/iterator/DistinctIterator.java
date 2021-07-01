@@ -18,10 +18,13 @@
 
 package com.vaticle.typedb.core.common.iterator;
 
+import com.vaticle.typedb.core.common.exception.TypeDBException;
+
 import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.function.Function;
+
+import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_ARGUMENT;
 
 // TODO: verify (and potentially fix) this class is able to handle null objects
 class DistinctIterator<T> extends AbstractFunctionalIterator<T> {
@@ -65,7 +68,7 @@ class DistinctIterator<T> extends AbstractFunctionalIterator<T> {
 
     public static class Sorted<T extends Comparable<? super T>> extends AbstractFunctionalIterator.Sorted<T> {
 
-        private FunctionalIterator.Sorted<T> source;
+        private final FunctionalIterator.Sorted<T> source;
         T last;
 
         public Sorted(AbstractFunctionalIterator.Sorted<T> source) {
@@ -97,6 +100,7 @@ class DistinctIterator<T> extends AbstractFunctionalIterator<T> {
 
         @Override
         public void seek(T target) {
+            if (last != null && target.compareTo(last) < 0) throw TypeDBException.of(ILLEGAL_ARGUMENT); // cannot use backward seeks
             this.source.seek(target);
         }
 

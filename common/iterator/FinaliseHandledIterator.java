@@ -65,7 +65,7 @@ public class FinaliseHandledIterator<T> extends AbstractFunctionalIterator<T> im
 
         @Override
         public T peek() {
-            return null;
+            return source.peek();
         }
 
         @Override

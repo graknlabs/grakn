@@ -32,35 +32,34 @@ public class FlatMergeSortedIterator<T, U extends Comparable<? super U>> extends
 
     private final FunctionalIterator<T> source;
     private final Function<T, FunctionalIterator.Sorted<U>> flatMappingFn;
-    private final PriorityQueue<QueueNode> next;
+    private final PriorityQueue<ComparableSortedIterator> queue;
     private final List<FunctionalIterator.Sorted<U>> notInQueue;
     private State state;
 
     public FlatMergeSortedIterator(FunctionalIterator<T> source, Function<T, FunctionalIterator.Sorted<U>> flatMappingFn) {
         this.source = source;
         this.flatMappingFn = flatMappingFn;
-        next = new PriorityQueue<>();
+        this.queue = new PriorityQueue<>();
         this.state = State.INIT;
         this.notInQueue = new ArrayList<>();
     }
 
     private enum State {
-        INIT, NOT_READY, READY, COMPLETED;
+        INIT, NOT_READY, FETCHED, COMPLETED;
     }
 
-    private class QueueNode implements Comparable<QueueNode> {
+    private class ComparableSortedIterator implements Comparable<ComparableSortedIterator> {
 
         private final FunctionalIterator.Sorted<U> iter;
-        private final U value;
 
-        private QueueNode(FunctionalIterator.Sorted<U> iter, U value){
+        private ComparableSortedIterator(FunctionalIterator.Sorted<U> iter){
+            assert iter.hasNext();
             this.iter = iter;
-            this.value = value;
         }
 
         @Override
-        public int compareTo(QueueNode other) {
-            return value.compareTo(other.value);
+        public int compareTo(ComparableSortedIterator other) {
+            return iter.peek().compareTo(other.iter.peek());
         }
     }
 
@@ -68,11 +67,13 @@ public class FlatMergeSortedIterator<T, U extends Comparable<? super U>> extends
     public boolean hasNext() {
         switch (state) {
             case INIT:
-                return initialise();
-            case READY:
+                initialise();
+                return state == State.FETCHED;
+            case FETCHED:
                 return true;
             case NOT_READY:
-                return fetchAndCheck();
+                tryFetch();
+                return state == State.FETCHED;
             case COMPLETED:
                 return false;
             default:
@@ -80,62 +81,62 @@ public class FlatMergeSortedIterator<T, U extends Comparable<? super U>> extends
         }
     }
 
-    private boolean fetchAndCheck() {
+    private void tryFetch() {
         if (!notInQueue.isEmpty()) {
-            notInQueue.forEach(sorted -> {
-                if (sorted.hasNext()) next.add(new QueueNode(sorted, sorted.peek()));
+            notInQueue.forEach(sortedIterator -> {
+                if (sortedIterator.hasNext()) queue.add(new ComparableSortedIterator(sortedIterator));
             });
             notInQueue.clear();
         }
-        if (next.isEmpty()) state = State.COMPLETED;
-        else state = State.READY;
-        return state == State.READY;
+        if (queue.isEmpty()) state = State.COMPLETED;
+        else state = State.FETCHED;
     }
 
-    private boolean initialise() {
+    private void initialise() {
         source.forEachRemaining(value -> {
             FunctionalIterator.Sorted<U> sortedIterator = flatMappingFn.apply(value);
-            if (sortedIterator.hasNext()) {
-                next.add(new QueueNode(sortedIterator, sortedIterator.peek()));
-            }
+            if (sortedIterator.hasNext()) queue.add(new ComparableSortedIterator(sortedIterator));
         });
         source.recycle();
-        if (next.isEmpty()) state = State.COMPLETED;
-        else state = State.READY;
-        return state == State.READY;
+        if (queue.isEmpty()) state = State.COMPLETED;
+        else state = State.FETCHED;
     }
 
     @Override
     public U next() {
         if (!hasNext()) throw new NoSuchElementException();
-        QueueNode lowest = this.next.poll();
-        FunctionalIterator.Sorted<U> iter = lowest.iter;
-        U value = iter.next();
+        ComparableSortedIterator nextIter = this.queue.poll();
+        assert nextIter != null;
+        FunctionalIterator.Sorted<U> sortedIterator = nextIter.iter;
+        U next = sortedIterator.next();
         state = State.NOT_READY;
-        notInQueue.add(iter);
-        return value;
+        notInQueue.add(sortedIterator);
+        return next;
     }
 
     @Override
     public U peek() {
         if (!hasNext()) throw new NoSuchElementException();
-        return next.peek().iter.peek();
+        assert !queue.isEmpty();
+        return queue.peek().iter.peek();
     }
 
     @Override
     public void seek(U target) {
-        next.forEach(queueNode -> {
+        notInQueue.forEach(iter -> iter.seek(target));
+        queue.forEach(queueNode -> {
             FunctionalIterator.Sorted<U> iter = queueNode.iter;
             iter.seek(target);
             notInQueue.add(iter);
         });
-        next.clear();
+        queue.clear();
+        state = State.NOT_READY;
     }
 
     @Override
     public void recycle() {
-        next.forEach(queueNode -> queueNode.iter.recycle());
-        next.clear();
+        queue.forEach(queueNode -> queueNode.iter.recycle());
+        queue.clear();
         notInQueue.forEach(FunctionalIterator::recycle);
         notInQueue.clear();
         source.recycle();

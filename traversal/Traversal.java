@@ -135,8 +135,7 @@ public class Traversal {
 
     FunctionalIterator<VertexMap> relations(GraphManager graphMgr) {
         RelationIterator relationIterator = new RelationIterator(this.structure, this.parameters, graphMgr);
-//        return relationIterator.iterator();
-        return null;
+        return relationIterator;
     }
 
     FunctionalProducer<VertexMap> producer(GraphManager graphMgr, Either<Arguments.Query.Producer, Long> context,

@@ -38,7 +38,7 @@ public final class RocksIterator<T extends Bytes.ByteComparable<T>> extends Abst
     private T next;
     private boolean isClosed;
 
-    private enum State {INIT, EMPTY, FETCHED, COMPLETED}
+    private enum State {INIT, EMPTY, SEEKED_EMPTY, FETCHED, COMPLETED}
 
     RocksIterator(RocksStorage storage, ByteArray prefix, BiFunction<ByteArray, ByteArray, T> constructor) {
         this.storage = storage;
@@ -76,6 +76,8 @@ public final class RocksIterator<T extends Bytes.ByteComparable<T>> extends Abst
                 return true;
             case EMPTY:
                 return fetchAndCheck();
+            case SEEKED_EMPTY:
+                return checkValidNext();
             case INIT:
                 return initialiseAndCheck();
             default: // This should never be reached
@@ -85,36 +87,37 @@ public final class RocksIterator<T extends Bytes.ByteComparable<T>> extends Abst
 
     @Override
     public void seek(T target) {
-        internalRocksIterator.seek(target.getBytes().getArray());
-        if (!hasValidNext()) state = State.COMPLETED;
+        if (state == State.INIT) initialise(target.getBytes());
+        else internalRocksIterator.seek(target.getBytes().getArray());
+        state = State.SEEKED_EMPTY;
     }
 
-    private synchronized boolean initialiseAndCheck() {
-        if (state == State.INIT) {
-            initialise();
-            return hasValidNext();
+    private synchronized boolean fetchAndCheck() {
+        if (state != State.COMPLETED) {
+            internalRocksIterator.next();
+            return checkValidNext();
         } else {
             return false;
         }
     }
 
-    private synchronized void initialise() {
+    private synchronized boolean initialiseAndCheck() {
+        if (state == State.INIT) {
+            initialise(prefix.getBytes());
+            return checkValidNext();
+        } else {
+            return false;
+        }
+    }
+
+    private synchronized void initialise(ByteArray prefix) {
         assert state == State.INIT;
         this.internalRocksIterator = storage.getInternalRocksIterator();
         this.internalRocksIterator.seek(prefix.getArray());
         state = State.EMPTY;
     }
 
-    private synchronized boolean fetchAndCheck() {
-        if (state != State.COMPLETED) {
-            internalRocksIterator.next();
-            return hasValidNext();
-        } else {
-            return false;
-        }
-    }
-
-    private synchronized boolean hasValidNext() {
+    private synchronized boolean checkValidNext() {
         ByteArray key;
         if (!internalRocksIterator.isValid() || !((key = ByteArray.of(internalRocksIterator.key())).hasPrefix(prefix))) {
             recycle();

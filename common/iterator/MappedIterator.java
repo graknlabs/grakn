@@ -46,7 +46,6 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
         iterator.recycle();
     }
 
-
     /*
     UNSAFE
     The user must guarantee the mapping function preserves the sort order that the the source provides,

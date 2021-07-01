@@ -18,13 +18,12 @@
 package com.vaticle.typedb.core.graph.iid;
 
 import com.vaticle.typedb.core.common.collection.ByteArray;
-import com.vaticle.typedb.core.common.collection.Bytes;
 import com.vaticle.typedb.core.graph.common.Encoding;
 import com.vaticle.typedb.core.graph.common.KeyGenerator;
 
 import static com.vaticle.typedb.core.common.collection.ByteArray.join;
 
-public abstract class StructureIID<T extends StructureIID<T>> extends IID {
+public abstract class StructureIID extends IID {
 
     StructureIID(ByteArray bytes) {
         super(bytes);
@@ -37,7 +36,7 @@ public abstract class StructureIID<T extends StructureIID<T>> extends IID {
         return null;
     }
 
-    public static class Rule extends StructureIID<Rule> {
+    public static class Rule extends StructureIID {
 
         public static final int LENGTH = PrefixIID.LENGTH + 2;
 
