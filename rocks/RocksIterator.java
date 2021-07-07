@@ -49,7 +49,7 @@ public final class RocksIterator<T extends Bytes.ByteComparable<T>> extends Abst
     }
 
     @Override
-    public final T peek() {
+    public synchronized final T peek() {
         if (!hasNext()) {
             if (isClosed) throw TypeDBException.of(RESOURCE_CLOSED);
             else throw new NoSuchElementException();
@@ -86,7 +86,7 @@ public final class RocksIterator<T extends Bytes.ByteComparable<T>> extends Abst
     }
 
     @Override
-    public void seek(T target) {
+    public synchronized void seek(T target) {
         if (state == State.INIT) initialise(target.getBytes());
         else internalRocksIterator.seek(target.getBytes().getArray());
         state = State.SEEKED_EMPTY;
@@ -102,7 +102,7 @@ public final class RocksIterator<T extends Bytes.ByteComparable<T>> extends Abst
     }
 
     private synchronized boolean initialiseAndCheck() {
-        if (state == State.INIT) {
+        if (state != State.COMPLETED) {
             initialise(prefix.getBytes());
             return checkValidNext();
         } else {

@@ -19,10 +19,13 @@
 package com.vaticle.typedb.core.common.iterator;
 
 import com.vaticle.typedb.common.collection.Either;
+import com.vaticle.typedb.core.common.exception.TypeDBException;
 
 import java.util.Iterator;
 import java.util.NavigableSet;
 import java.util.NoSuchElementException;
+
+import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_ARGUMENT;
 
 class BaseIterator<T> extends AbstractFunctionalIterator<T> {
 
@@ -52,10 +55,12 @@ class BaseIterator<T> extends AbstractFunctionalIterator<T> {
         private final NavigableSet<T> source;
         private Iterator<T> iterator;
         private T next;
+        private T last;
 
         public Sorted(NavigableSet<T> source) {
             this.source = source;
             this.iterator = source.iterator();
+            this.last = null;
         }
 
         @Override
@@ -73,13 +78,14 @@ class BaseIterator<T> extends AbstractFunctionalIterator<T> {
         @Override
         public T next() {
             if (!hasNext()) throw new NoSuchElementException();
-            T value = next;
+            last = next;
             next = null;
-            return value;
+            return last;
         }
 
         @Override
         public void seek(T target) {
+            if (last != null && target.compareTo(last) < 0) throw TypeDBException.of(ILLEGAL_ARGUMENT); // cannot use backward seeks
             this.iterator = source.tailSet(target).iterator();
             this.next = null;
         }

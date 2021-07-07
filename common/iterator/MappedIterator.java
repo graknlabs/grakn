@@ -18,8 +18,13 @@
 
 package com.vaticle.typedb.core.common.iterator;
 
+import com.vaticle.typedb.core.common.exception.TypeDBException;
+
 import java.util.NoSuchElementException;
 import java.util.function.Function;
+
+import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_ARGUMENT;
+import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_STATE;
 
 class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
 
@@ -52,43 +57,69 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
     in the new domain.
      */
     static class Sorted<T extends Comparable<? super T>, U extends Comparable<? super U>> extends AbstractFunctionalIterator.Sorted<U> {
+
         private final FunctionalIterator.Sorted<T> source;
         private final Function<T, U> mappingFn;
         private final Function<U, T> reverseMappingFn;
+        private State state;
+        private U next;
         private U last;
+
+        private enum State {EMPTY, FETCHED, COMPLETED};
 
         public Sorted(FunctionalIterator.Sorted<T> source, Function<T, U> mappingFn, Function<U, T> reverseMappingFn) {
             this.source = source;
             this.mappingFn = mappingFn;
             this.reverseMappingFn = reverseMappingFn;
+            this.state = State.EMPTY;
             last = null;
         }
 
         @Override
         public void seek(U target) {
+            if (last != null && target.compareTo(last) < 0) throw TypeDBException.of(ILLEGAL_ARGUMENT); // cannot use backward seeks
             T reverseMapped = reverseMappingFn.apply(target);
             source.seek(reverseMapped);
+            state = State.EMPTY;
         }
 
         @Override
         public U peek() {
-            // TODO optimise
-            return mappingFn.apply(source.peek());
+            if (!hasNext()) throw new NoSuchElementException();
+            return next;
         }
 
         @Override
         public boolean hasNext() {
-            return source.hasNext();
+            switch (state) {
+                case COMPLETED:
+                    return false;
+                case FETCHED:
+                    return true;
+                case EMPTY:
+                    return fetchAndCheck();
+                default:
+                    throw TypeDBException.of(ILLEGAL_STATE);
+            }
+        }
+
+        private boolean fetchAndCheck() {
+            if (source.hasNext()) {
+                next = mappingFn.apply(source.next());
+                state = State.FETCHED;
+            } else {
+                state = State.COMPLETED;
+            }
+            return state == State.FETCHED;
         }
 
         @Override
         public U next() {
             if (!hasNext()) throw new NoSuchElementException();
-            T next = source.next();
-            U mappedNext = mappingFn.apply(next);
-            assert last == null || mappedNext.compareTo(last) >= 0 : "Sorted mapped iterator produces out of order values";
-            last = mappedNext;
-            return mappedNext;
+            assert last == null || next.compareTo(last) >= 0 : "Sorted mapped iterator produces out of order values";
+            last = next;
+            state = State.EMPTY;
+            return next;
         }
 
         @Override

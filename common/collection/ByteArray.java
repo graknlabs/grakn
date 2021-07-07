@@ -279,26 +279,21 @@ public abstract class ByteArray implements ByteComparable<ByteArray> {
         return LocalDateTime.ofInstant(Instant.ofEpochMilli(decodeSortedAsLong()), timeZoneID);
     }
 
+    /**
+     * This comparison function implements the same byte-wise lexicographic comparator that RocksDB comparators use
+     * See similar implementations at: https://stackoverflow.com/questions/5108091/java-comparator-for-byte-array-lexicographic
+     * Note: if this is performance bottleneck we could move to Guava's Unsafe comparator in the link above
+     */
     @Override
     public int compareTo(ByteArray that) {
         int n = Math.min(length(), that.length());
-//        if (n == 0) return Integer.compare(length(), that.length());
-//        int cmp = Byte.compare((byte)(get(0) ^ 0x80), (byte)(that.get(0) ^ 0x80));
-//        if (cmp != 0) return cmp;
         for (int i = 1; i < n; i++) {
             int a = unsignedValue(get(i));
             int b = unsignedValue(that.get(i));
             if (a != b) return a - b;
         }
         return Integer.compare(length(), that.length());
-
-//        if (that instanceof Base) return compareToBase((Base) that);
-//        else return compareToView((View) that);
     }
-
-    abstract int compareToView(View that);
-
-    abstract int compareToBase(Base that);
 
     @Override
     public boolean equals(Object o) {
@@ -424,26 +419,6 @@ public abstract class ByteArray implements ByteComparable<ByteArray> {
         }
 
         @Override
-        int compareToBase(Base that) {
-            int n = Math.min(array.length, that.array.length);
-            for (int i = 0; i < n; i++) {
-                int cmp = Byte.compare(array[i], that.array[i]);
-                if (cmp != 0) return cmp;
-            }
-            return Integer.compare(array.length, that.array.length);
-        }
-
-        @Override
-        int compareToView(View that) {
-            int n = Math.min(array.length, that.length);
-            for (int i = 0; i < n; i++) {
-                int cmp = Byte.compare(array[i], that.array[i + that.start]);
-                if (cmp != 0) return cmp;
-            }
-            return Integer.compare(array.length, that.length);
-        }
-
-        @Override
         public boolean equalsBase(Base o) {
             return Arrays.equals(array, o.array);
         }
@@ -559,26 +534,6 @@ public abstract class ByteArray implements ByteComparable<ByteArray> {
                 if (array[i + start] != prefix.get(i)) return false;
             }
             return true;
-        }
-
-        @Override
-        int compareToBase(Base that) {
-            int n = Math.min(length, that.array.length);
-            for (int i = 0; i < n; i++) {
-                int cmp = Byte.compare(array[i + start], that.array[i]);
-                if (cmp != 0) return cmp;
-            }
-            return Integer.compare(length, that.array.length);
-        }
-
-        @Override
-        int compareToView(View that) {
-            int n = Math.min(length, that.length);
-            for (int i = 0; i < n; i++) {
-                int cmp = Byte.compare(array[i + start], that.array[i + that.start]);
-                if (cmp != 0) return cmp;
-            }
-            return Integer.compare(length, that.length);
         }
 
         @Override

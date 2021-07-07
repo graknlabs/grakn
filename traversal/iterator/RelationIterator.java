@@ -225,7 +225,7 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
         Set<Label> roleTypes = structureEdge.asNative().asRolePlayer().types();
         assert roleTypes.size() == 1;
         TypeVertex roleType = graphMgr.schema().getType(roleTypes.iterator().next());
-        FunctionalIterator.Sorted<ThingVertex> relations = player.ins()
+        return player.ins()
                 .edgeRolePlayer(roleType.iid(), PrefixIID.of(relationType.iid().encoding().instance()), relationType.iid()).get()
                 .filter(directedEdge -> !scoped.containsRole(directedEdge.getEdge().optimised().get()))
                 .mapSorted(
@@ -237,7 +237,6 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
                             ThingEdge target = new ThingEdgeImpl.Virtual(Encoding.Edge.Thing.ROLEPLAYER, vertex, answer.get(playerId).asThing(), roleType);
                             return ThingAdjacency.EdgeDirected.in(target);
                         });
-        return relations;
     }
 
     @Override

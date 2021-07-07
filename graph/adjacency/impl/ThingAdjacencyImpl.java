@@ -162,10 +162,10 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
 
         @Override
         public ThingIteratorSortedBuilder edgeRolePlayer(IID roleType, IID... lookAhead) {
-            IID[] merged = new IID[1 + lookAhead.length];
-            merged[0] = roleType;
-            System.arraycopy(lookAhead, 0, merged, 1, lookAhead.length);
-            return new ThingIteratorSortedBuilderImpl(edgeIteratorSorted(Encoding.Edge.Thing.ROLEPLAYER, merged));
+            IID[] combinedLookahead = new IID[1 + lookAhead.length];
+            combinedLookahead[0] = roleType;
+            System.arraycopy(lookAhead, 0, combinedLookahead, 1, lookAhead.length);
+            return new ThingIteratorSortedBuilderImpl(edgeIteratorSorted(Encoding.Edge.Thing.ROLEPLAYER, combinedLookahead));
         }
 
         @Override
@@ -190,7 +190,7 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
 
         final ThingVertex.Write owner;
         final ConcurrentMap<InfixIID.Thing, ConcurrentSet<InfixIID.Thing>> infixes;
-        public final ConcurrentMap<InfixIID.Thing, ConcurrentNavigableMap<EdgeDirected, ThingEdge>> edges; // edges must be updateable
+        final ConcurrentMap<InfixIID.Thing, ConcurrentNavigableMap<EdgeDirected, ThingEdge>> edges;
 
         Write(ThingVertex.Write owner, Encoding.Direction.Adjacency direction) {
             super(direction);

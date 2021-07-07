@@ -257,22 +257,6 @@ public abstract class AbstractFunctionalIterator<T> implements FunctionalIterato
             return new FilteredIterator.Sorted<>(this, predicate);
         }
 
-
-//        @Override
-//        public FunctionalIterator.Sorted<T, K> offset(long offset) {
-//
-//        }
-//
-//        @Override
-//        public FunctionalIterator.Sorted<T, K> onConsumed(Runnable function) {
-//
-//        }
-//
-//        @Override
-//        public FunctionalIterator.Sorted<T, K> onError(Function<Exception, TypeDBException> exceptionFn) {
-//
-//        }
-//
         @Override
         public FunctionalIterator.Sorted<T> onFinalise(Runnable function) {
             return new FinaliseHandledIterator.Sorted<>(this, function);

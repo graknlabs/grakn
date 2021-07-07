@@ -26,6 +26,7 @@ import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import java.util.function.Function;
 
+import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_ARGUMENT;
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_STATE;
 
 public class FlatMergeSortedIterator<T, U extends Comparable<? super U>> extends AbstractFunctionalIterator.Sorted<U> {
@@ -35,6 +36,11 @@ public class FlatMergeSortedIterator<T, U extends Comparable<? super U>> extends
     private final PriorityQueue<ComparableSortedIterator> queue;
     private final List<FunctionalIterator.Sorted<U>> notInQueue;
     private State state;
+    private U last;
+
+    private enum State {
+        INIT, NOT_READY, FETCHED, COMPLETED;
+    }
 
     public FlatMergeSortedIterator(FunctionalIterator<T> source, Function<T, FunctionalIterator.Sorted<U>> flatMappingFn) {
         this.source = source;
@@ -42,10 +48,7 @@ public class FlatMergeSortedIterator<T, U extends Comparable<? super U>> extends
         this.queue = new PriorityQueue<>();
         this.state = State.INIT;
         this.notInQueue = new ArrayList<>();
-    }
-
-    private enum State {
-        INIT, NOT_READY, FETCHED, COMPLETED;
+        this.last = null;
     }
 
     private class ComparableSortedIterator implements Comparable<ComparableSortedIterator> {
@@ -108,10 +111,10 @@ public class FlatMergeSortedIterator<T, U extends Comparable<? super U>> extends
         ComparableSortedIterator nextIter = this.queue.poll();
         assert nextIter != null;
         FunctionalIterator.Sorted<U> sortedIterator = nextIter.iter;
-        U next = sortedIterator.next();
+        last = sortedIterator.next();
         state = State.NOT_READY;
         notInQueue.add(sortedIterator);
-        return next;
+        return last;
     }
 
     @Override
@@ -123,6 +126,7 @@ public class FlatMergeSortedIterator<T, U extends Comparable<? super U>> extends
 
     @Override
     public void seek(U target) {
+        if (last != null && target.compareTo(last) < 0) throw TypeDBException.of(ILLEGAL_ARGUMENT); // cannot use backward seeks
         notInQueue.forEach(iter -> iter.seek(target));
         queue.forEach(queueNode -> {
             FunctionalIterator.Sorted<U> iter = queueNode.iter;
