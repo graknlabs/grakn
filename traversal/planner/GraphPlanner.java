@@ -402,8 +402,8 @@ public class GraphPlanner implements Planner {
         edges.forEach(PlannerEdge::recordResults);
         GraphProcedure newProcedure = GraphProcedure.create(this);
         if (procedure == null || !procedure.toString().equals(newProcedure.toString())) {
-            System.out.println("New procedure");
-            System.out.println(newProcedure.toString());
+            LOG.info("New procedure");
+            LOG.info(newProcedure.toString());
         }
         procedure = newProcedure;
     }
