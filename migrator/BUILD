@@ -45,6 +45,7 @@ native_java_libraries(
     deps = [
         # Internal dependencies
         "//common:common",
+        "//concurrent",
 
         # External dependencies from Vaticle
         "@vaticle_typedb_common//:common",

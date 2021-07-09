@@ -57,8 +57,10 @@ public class DataExporter implements Migrator {
     private final AtomicLong relationCount = new AtomicLong(0);
     private final AtomicLong attributeCount = new AtomicLong(0);
     private final AtomicLong ownershipCount = new AtomicLong(0);
-    private final AtomicLong playerCount = new AtomicLong(0);
-    private long totalThingCount = 0;
+    private final AtomicLong roleCount = new AtomicLong(0);
+    private long totalEntityCount = 0;
+    private long totalAttributeCount = 0;
+    private long totalRelationCount = 0;
 
     DataExporter(TypeDB typedb, String database, Path filename, String version) {
         this.typedb = typedb;
@@ -68,11 +70,14 @@ public class DataExporter implements Migrator {
     }
 
     @Override
-    public MigratorProto.Job.Progress getProgress() {
-        long current = attributeCount.get() + relationCount.get() + entityCount.get();
-        return MigratorProto.Job.Progress.newBuilder()
-                .setCurrent(current)
-                .setTotal(totalThingCount)
+    public MigratorProto.Job.ExportProgress getProgress() {
+        return MigratorProto.Job.ExportProgress.newBuilder()
+                .setAttributesCurrent(attributeCount.get())
+                .setEntitiesCurrent(entityCount.get())
+                .setRelationsCurrent(relationCount.get())
+                .setAttributes(totalEntityCount)
+                .setEntities(totalAttributeCount)
+                .setRelations(totalRelationCount)
                 .build();
     }
 
@@ -85,13 +90,9 @@ public class DataExporter implements Migrator {
         try (OutputStream outputStream = new BufferedOutputStream(Files.newOutputStream(filename))) {
             try (TypeDB.Session session = typedb.session(database, Arguments.Session.Type.DATA);
                  TypeDB.Transaction tx = session.transaction(Arguments.Transaction.Type.READ)) {
-                totalThingCount = tx.concepts().getRootThingType().getInstancesCount();
-                DataProto.Item header = DataProto.Item.newBuilder().setHeader(
-                        DataProto.Item.Header.newBuilder()
-                                .setTypedbVersion(version)
-                                .setOriginalDatabase(session.database().name())
-                ).build();
-                write(outputStream, header);
+                totalEntityCount = tx.concepts().getRootEntityType().getInstancesCount();
+                totalAttributeCount = tx.concepts().getRootAttributeType().getInstancesCount();
+                totalRelationCount = tx.concepts().getRootRelationType().getInstancesCount();
 
                 List<Runnable> workers = new ArrayList<>();
                 workers.add(() -> tx.concepts().getRootEntityType().getInstances().forEachRemaining(entity -> {
@@ -113,7 +114,7 @@ public class DataExporter implements Migrator {
                                 .setEntityCount(entityCount.get())
                                 .setAttributeCount(attributeCount.get())
                                 .setRelationCount(relationCount.get())
-                                .setRoleCount(playerCount.get())
+                                .setRoleCount(roleCount.get())
                                 .setOwnershipCount(ownershipCount.get())
                 ).build();
                 write(outputStream, checksums);
@@ -125,7 +126,7 @@ public class DataExporter implements Migrator {
                  entityCount.get(),
                  attributeCount.get(),
                  relationCount.get(),
-                 playerCount.get(),
+                 roleCount.get(),
                  ownershipCount.get());
     }
 
@@ -152,7 +153,7 @@ public class DataExporter implements Migrator {
             DataProto.Item.Relation.Role.Builder roleBuilder = DataProto.Item.Relation.Role.newBuilder()
                     .setLabel(role.getLabel().scopedName());
             for (Thing player : rolePlayers.getValue()) {
-                playerCount.incrementAndGet();
+                roleCount.incrementAndGet();
                 roleBuilder.addPlayer(DataProto.Item.Relation.Role.Player.newBuilder()
                                               .setId(player.getIID().decodeString()));
             }

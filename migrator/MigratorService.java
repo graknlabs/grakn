@@ -63,7 +63,11 @@ public class MigratorService extends MigratorGrpc.MigratorImplBase {
             CompletableFuture<Void> migratorJob = CompletableFuture.runAsync(migrator::run);
             while (!migratorJob.isDone()) {
                 Thread.sleep(1000);
-                responseObserver.onNext(MigratorProto.Job.Res.newBuilder().setProgress(migrator.getProgress()).build());
+                if (migrator instanceof DataExporter) {
+                    responseObserver.onNext(MigratorProto.Job.Res.newBuilder().setProgress(migrator.getProgress()).build());
+                } else {
+
+                }
             }
             migratorJob.get();
             responseObserver.onCompleted();
