@@ -96,6 +96,12 @@ public class DataImporter implements Migrator {
     }
 
     @Override
+    public void close() {
+        tx.close();
+        session.close();
+    }
+
+    @Override
     public void run() {
         // We scan the file to find the checksum. This is probably not a good idea for files larger than several
         // gigabytes but that case is rare and the actual import would take so long that even if this took a few
@@ -144,8 +150,7 @@ public class DataImporter implements Migrator {
         insertMissingOwnerships();
         insertMissingRolePlayers();
         commit();
-        tx.close();
-        session.close();
+        close();
 
         LOG.info("Imported {} entities, {} attributes, {} relations ({} players), {} ownerships",
                  entityCount,
@@ -195,7 +200,7 @@ public class DataImporter implements Migrator {
                     throw TypeDBException.of(TYPE_NOT_FOUND, relabel(roleMsg.getLabel()), roleMsg.getLabel());
                 }
             }
-            this.missingRolePlayers.add(new Pair<>(relation.getIID(), missingRolePlayers));
+            if (!missingRolePlayers.isEmpty()) this.missingRolePlayers.add(new Pair<>(relation.getIID(), missingRolePlayers));
 
             relationCount++;
             mayCommit();
@@ -250,7 +255,7 @@ public class DataImporter implements Migrator {
             }
             mayCommit();
         }
-        this.missingOwnerships.add(new Pair<>(thing.getIID(), missingOwnerships));
+        if (!missingOwnerships.isEmpty()) this.missingOwnerships.add(new Pair<>(thing.getIID(), missingOwnerships));
     }
 
     private void insertMissingOwnerships() {

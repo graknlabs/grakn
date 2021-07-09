@@ -61,21 +61,19 @@ public class MigratorService extends MigratorGrpc.MigratorImplBase {
     private void runMigrator(Migrator migrator, StreamObserver<MigratorProto.Job.Res> responseObserver) {
         try {
             CompletableFuture<Void> migratorJob = CompletableFuture.runAsync(migrator::run);
-            try {
-                while (!migratorJob.isDone()) {
-                    Thread.sleep(1000);
-                    responseObserver.onNext(MigratorProto.Job.Res.newBuilder().setProgress(migrator.getProgress()).build());
-                }
-                migratorJob.get();
-            } catch (InterruptedException e) {
-                throw TypeDBException.of(UNEXPECTED_INTERRUPTION);
-            } catch (ExecutionException e) {
-                throw e.getCause();
+            while (!migratorJob.isDone()) {
+                Thread.sleep(1000);
+                responseObserver.onNext(MigratorProto.Job.Res.newBuilder().setProgress(migrator.getProgress()).build());
             }
+            migratorJob.get();
             responseObserver.onCompleted();
+        } catch (InterruptedException | ExecutionException e) {
+            throw TypeDBException.of(UNEXPECTED_INTERRUPTION);
         } catch (Throwable e) {
             LOG.error(e.getMessage(), e);
             responseObserver.onError(exception(e));
+        } finally {
+            migrator.close();
         }
     }
 

@@ -77,6 +77,9 @@ public class DataExporter implements Migrator {
     }
 
     @Override
+    public void close() { }
+
+    @Override
     public void run() {
         LOG.info("Exporting {} from TypeDB {}", database, version);
         try (OutputStream outputStream = new BufferedOutputStream(Files.newOutputStream(filename))) {
