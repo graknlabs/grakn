@@ -181,7 +181,7 @@ public class DataImporter implements Migrator {
             idMap.put(relationMsg.getId(), relation.getIID());
             insertOwnedAttributesThatExist(relation, relationMsg.getAttributeList());
 
-            List<Pair<String, List<String>>> missingRolePlayers = new ArrayList<>();
+            List<Pair<String, List<String>>> relationRPs = new ArrayList<>();
             for (DataProto.Item.Relation.Role roleMsg : relationMsg.getRoleList()) {
                 RoleType role = roles.get(relabel(roleMsg.getLabel()));
                 if (role != null) {
@@ -195,12 +195,12 @@ public class DataImporter implements Migrator {
                             missingPlayers.add(playerMessage.getId());
                         }
                     }
-                    missingRolePlayers.add(new Pair<>(relabel(roleMsg.getLabel()), missingPlayers));
+                    relationRPs.add(new Pair<>(relabel(roleMsg.getLabel()), missingPlayers));
                 } else {
                     throw TypeDBException.of(TYPE_NOT_FOUND, relabel(roleMsg.getLabel()), roleMsg.getLabel());
                 }
             }
-            if (!missingRolePlayers.isEmpty()) this.missingRolePlayers.add(new Pair<>(relation.getIID(), missingRolePlayers));
+            if (!relationRPs.isEmpty()) this.missingRolePlayers.add(new Pair<>(relation.getIID(), relationRPs));
 
             relationCount++;
             mayCommit();
@@ -244,18 +244,18 @@ public class DataImporter implements Migrator {
     }
 
     private void insertOwnedAttributesThatExist(Thing thing, List<DataProto.Item.OwnedAttribute> ownedMsgs) {
-        List<String> missingOwnerships = new ArrayList<>();
+        List<String> missing = new ArrayList<>();
         for (DataProto.Item.OwnedAttribute ownedMsg : ownedMsgs) {
             Thing attrThing = getThing(ownedMsg.getId());
             if (attrThing != null) {
                 thing.setHas(attrThing.asAttribute());
                 ownershipCount++;
             } else {
-                missingOwnerships.add(ownedMsg.getId());
+                missing.add(ownedMsg.getId());
             }
             mayCommit();
         }
-        if (!missingOwnerships.isEmpty()) this.missingOwnerships.add(new Pair<>(thing.getIID(), missingOwnerships));
+        if (!missing.isEmpty()) this.missingOwnerships.add(new Pair<>(thing.getIID(), missing));
     }
 
     private void insertMissingOwnerships() {
