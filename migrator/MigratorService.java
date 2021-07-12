@@ -54,8 +54,8 @@ public class MigratorService extends MigratorGrpc.MigratorImplBase {
     @Override
     public void importData(MigratorProto.ImportData.Req request, StreamObserver<MigratorProto.Job.Res> responseObserver) {
         Path file = Paths.get(request.getFilename());
-        DataImporter importer = new DataImporter(typedb, request.getDatabase(), file, request.getRemapLabelsMap(), version);
-        runMigrator(importer, responseObserver);
+//        DataImporter importer = new DataImporter(typedb, request.getDatabase(), file, request.getRemapLabelsMap(), version);
+//        runMigrator(importer, responseObserver);
     }
 
     private void runMigrator(Migrator migrator, StreamObserver<MigratorProto.Job.Res> responseObserver) {

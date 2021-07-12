@@ -70,19 +70,23 @@ public class DataExporter implements Migrator {
     }
 
     @Override
-    public MigratorProto.Job.ExportProgress getProgress() {
-        return MigratorProto.Job.ExportProgress.newBuilder()
-                .setAttributesCurrent(attributeCount.get())
-                .setEntitiesCurrent(entityCount.get())
-                .setRelationsCurrent(relationCount.get())
-                .setAttributes(totalEntityCount)
-                .setEntities(totalAttributeCount)
-                .setRelations(totalRelationCount)
-                .build();
+    public MigratorProto.Job.Progress getProgress() {
+        return MigratorProto.Job.Progress.newBuilder()
+                .setExportProgress(
+                        MigratorProto.Job.ExportProgress.newBuilder()
+                                .setAttributesCurrent(attributeCount.get())
+                                .setEntitiesCurrent(entityCount.get())
+                                .setRelationsCurrent(relationCount.get())
+                                .setAttributes(totalEntityCount)
+                                .setEntities(totalAttributeCount)
+                                .setRelations(totalRelationCount)
+                                .build()
+                ).build();
     }
 
     @Override
-    public void close() { }
+    public void close() {
+    }
 
     @Override
     public void run() {
@@ -123,11 +127,11 @@ public class DataExporter implements Migrator {
             throw TypeDBException.of(FILE_NOT_WRITABLE, filename.toString());
         }
         LOG.info("Exported {} entities, {} attributes, {} relations ({} roles), {} ownerships",
-                 entityCount.get(),
-                 attributeCount.get(),
-                 relationCount.get(),
-                 roleCount.get(),
-                 ownershipCount.get());
+                entityCount.get(),
+                attributeCount.get(),
+                relationCount.get(),
+                roleCount.get(),
+                ownershipCount.get());
     }
 
     private DataProto.Item readEntity(Entity entity) {
@@ -155,7 +159,7 @@ public class DataExporter implements Migrator {
             for (Thing player : rolePlayers.getValue()) {
                 roleCount.incrementAndGet();
                 roleBuilder.addPlayer(DataProto.Item.Relation.Role.Player.newBuilder()
-                                              .setId(player.getIID().decodeString()));
+                        .setId(player.getIID().decodeString()));
             }
             relationBuilder.addRole(roleBuilder);
         }
