@@ -20,7 +20,6 @@ package com.vaticle.typedb.core.migrator;
 
 import com.vaticle.typedb.core.common.exception.ErrorMessage;
 import com.vaticle.typedb.core.common.exception.TypeDBException;
-import com.vaticle.typedb.core.migrator.proto.DataProto;
 import com.vaticle.typedb.core.migrator.proto.MigratorGrpc;
 import com.vaticle.typedb.core.migrator.proto.MigratorProto;
 import io.grpc.ManagedChannel;
@@ -87,11 +86,6 @@ public class MigratorClient {
                 assert progress.hasImportProgress();
                 progressPrinter.onImportProgress(ProgressPrinter.ImportProgress.of(res.getProgress().getImportProgress()));
             }
-
-
-//            long current = res.getProgress().getCurrent();
-//            long total = res.getProgress().getTotal();
-//            progressPrinter.onProgress(current, total);
         }
 
         @Override
@@ -139,6 +133,18 @@ public class MigratorClient {
         private int anim = 0;
         private int lines = 0;
 
+//                String percent;
+//                String count;
+//                if (total > 0) {
+//                    percent = String.format("%.1f%%", (double) current / (double) total * 100.0);
+//                    count = String.format("%,d / %,d", current, total);
+//                } else {
+//                    percent = "?";
+//                    count = String.format("%,d", current);
+//                }
+//                builder.append(String.format(",\n    has progress (%s),\n    has count (%s)",
+//                                             percent, count));
+
         static class ExportProgress {
             int entity;
             int attribute;
@@ -153,7 +159,16 @@ public class MigratorClient {
 
             @Override
             public String toString() {
-                return null;
+                String attributeProgress = totalAttribute == 0 ? String.format("Attribute: %d/%d", attribute, totalAttribute) :
+                        String.format("Attribute: %d/%d (%.1f%%)", attribute, totalAttribute, 100.0 * attribute / totalAttribute);
+                String entityProgress = totalEntity == 0 ? String.format("Entity: %d/%d", entity, totalEntity) :
+                        String.format("Entity: %d/%d (%.1f%%)", entity, totalEntity, 100.0 * entity / totalEntity);
+                String relationProgress = totalRelation == 0 ? String.format("Relation: %d/%d", relation, totalRelation) :
+                        String.format("Relation: %d/%d (%.1f%%)", relation, totalRelation, 100.0 * relation / totalRelation);
+                int things = attribute + entity + relation;
+                int totalThings = totalAttribute + totalEntity + totalRelation;
+                String totalProgress = String.format("Total: %d/%d (%.1f%%)", things, totalThings, 100.0 * things / totalThings);
+                return attributeProgress + ", " + entityProgress + ", " + relationProgress + ", " + totalProgress;
             }
         }
 
@@ -161,21 +176,47 @@ public class MigratorClient {
             int entity;
             int attribute;
             int relation;
-            int ownerships;
-            int roles;
+            int ownership;
+            int role;
             int totalEntity;
             int totalAttribute;
             int totalRelation;
-            int totalOwnerships;
-            int totalRoles;
+            int totalOwnership;
+            int totalRole;
+
+            boolean attributeOnly = true;
 
             static ImportProgress of(MigratorProto.Job.ImportProgress importProgress) {
+                // TODO
                 return null;
             }
 
             @Override
             public String toString() {
-                return null;
+                StringBuilder progress = new StringBuilder();
+                progress.append(totalAttribute == 0 ? String.format("Attribute: %d/%d", attribute, totalAttribute) :
+                        String.format("Attribute: %d/%d (%.1f%%)", attribute, totalAttribute, 100.0 * attribute / totalAttribute));
+                int things = attribute;
+                int totalThings = totalAttribute;
+                if (!attributeOnly) {
+                    progress.append(", ");
+                    progress.append(totalOwnership == 0 ? String.format("Has: %d/%d", ownership, totalOwnership) :
+                            String.format("Has: %d/%d (%.1f%%)", ownership, totalOwnership, 100.0 * ownership / totalOwnership));
+                    progress.append(", ");
+                    progress.append(totalEntity == 0 ? String.format("Entity: %d/%d", entity, totalEntity) :
+                            String.format("Entity: %d/%d (%.1f%%)", entity, totalEntity, 100.0 * entity / totalEntity));
+                    progress.append(", ");
+                    progress.append(totalRelation == 0 ? String.format("Relation: %d/%d", relation, totalRelation) :
+                            String.format("Relation: %d/%d (%.1f%%)", relation, totalRelation, 100.0 * relation / totalRelation));
+                    progress.append(", ");
+                    progress.append(totalRole == 0 ? String.format("Role: %d/%d", role, totalRole) :
+                            String.format("Role: %d/%d (%.1f%%)", role, totalRole, 100.0 * role / totalRole));
+                    things += entity + relation + ownership + role;
+                    totalThings += totalEntity + totalRelation + totalOwnership + totalRole;
+                }
+                progress.append(", ");
+                progress.append(String.format("Total: %d/%d (%.1f%%)", things, totalThings, 100.0 * things / totalThings));
+                return progress.toString();
             }
         }
 
@@ -213,17 +254,7 @@ public class MigratorClient {
             if (status.equals(STATUS_IN_PROGRESS)) {
                 if (exportProgress != null) builder.append(exportProgress.toString());
                 else if (importProgress != null) builder.append(importProgress.toString());
-//                String percent;
-//                String count;
-//                if (total > 0) {
-//                    percent = String.format("%.1f%%", (double) current / (double) total * 100.0);
-//                    count = String.format("%,d / %,d", current, total);
-//                } else {
-//                    percent = "?";
-//                    count = String.format("%,d", current);
-//                }
-//                builder.append(String.format(",\n    has progress (%s),\n    has count (%s)",
-//                                             percent, count));
+
             }
 
             builder.append(";");
