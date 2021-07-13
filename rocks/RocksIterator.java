@@ -85,7 +85,7 @@ public final class RocksIterator extends AbstractFunctionalIterator.Sorted<KeyVa
     @Override
     public synchronized void seek(KeyValue<ByteArray, ByteArray> target) {
         if (state == State.INIT) initialise(target.key());
-        else internalRocksIterator.seek(target.key().getArray());
+        else internalRocksIterator.seek(target.key().getBytes());
         state = State.SEEKED_EMPTY;
     }
 
@@ -110,7 +110,7 @@ public final class RocksIterator extends AbstractFunctionalIterator.Sorted<KeyVa
     private synchronized void initialise(ByteArray prefix) {
         assert state == State.INIT;
         this.internalRocksIterator = storage.getInternalRocksIterator();
-        this.internalRocksIterator.seek(prefix.getArray());
+        this.internalRocksIterator.seek(prefix.getBytes());
         state = State.SEEKED_EMPTY;
     }
 

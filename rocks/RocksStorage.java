@@ -174,7 +174,7 @@ public abstract class RocksStorage implements Storage {
             try {
                 deleteCloseSchemaWriteLock.readLock().lock();
                 if (!isOpen()) throw TypeDBException.of(RESOURCE_CLOSED);
-                byte[] value = storageTransaction.get(readOptions, key.getArray());
+                byte[] value = storageTransaction.get(readOptions, key.getBytes());
                 if (value == null) return null;
                 else return ByteArray.of(value);
             } catch (RocksDBException e) {
@@ -207,7 +207,7 @@ public abstract class RocksStorage implements Storage {
             try {
                 deleteCloseSchemaWriteLock.readLock().lock();
                 if (!isOpen()) throw TypeDBException.of(RESOURCE_CLOSED);
-                byte[] value = storageTransaction.get(readOptions, key.getArray());
+                byte[] value = storageTransaction.get(readOptions, key.getBytes());
                 if (value == null) return null;
                 else return ByteArray.of(value);
             } catch (RocksDBException e) {
@@ -220,7 +220,7 @@ public abstract class RocksStorage implements Storage {
         @Override
         public ByteArray getLastKey(ByteArray prefix) {
             assert isOpen();
-            byte[] upperBound = Arrays.copyOf(prefix.getArray(), prefix.length());
+            byte[] upperBound = Arrays.copyOf(prefix.getBytes(), prefix.length());
             upperBound[upperBound.length - 1] = (byte) (upperBound[upperBound.length - 1] + 1);
             assert upperBound[upperBound.length - 1] != Byte.MIN_VALUE;
 
@@ -250,7 +250,7 @@ public abstract class RocksStorage implements Storage {
                 if (!isOpen() || (!transaction.isOpen() && transaction.isData())) {
                     throw TypeDBException.of(RESOURCE_CLOSED);
                 }
-                storageTransaction.deleteUntracked(key.getArray());
+                storageTransaction.deleteUntracked(key.getBytes());
             } catch (RocksDBException e) {
                 throw exception(e);
             } finally {
@@ -280,7 +280,7 @@ public abstract class RocksStorage implements Storage {
 
         public void commit() throws RocksDBException {
             // guarantee at least 1 write per tx
-            storageTransaction.putUntracked(TRANSACTION_DUMMY_WRITE.bytes().getArray(), EMPTY_ARRAY.getArray());
+            storageTransaction.putUntracked(TRANSACTION_DUMMY_WRITE.bytes().getBytes(), EMPTY_ARRAY.getBytes());
             // We disable RocksDB indexing of uncommitted writes, as we're only about to write and never again reading
             // TODO: We should benchmark this
             storageTransaction.disableIndexing();
@@ -317,7 +317,7 @@ public abstract class RocksStorage implements Storage {
                     obtainedWriteLock = true;
                 }
                 if (!isOpen()) throw TypeDBException.of(RESOURCE_CLOSED);
-                storageTransaction.putUntracked(key.getArray(), value.getArray());
+                storageTransaction.putUntracked(key.getBytes(), value.getBytes());
             } catch (RocksDBException e) {
                 throw exception(e);
             } finally {
@@ -382,7 +382,7 @@ public abstract class RocksStorage implements Storage {
             try {
                 deleteCloseSchemaWriteLock.readLock().lock();
                 if (!isOpen()) throw TypeDBException.of(RESOURCE_CLOSED);
-                storageTransaction.putUntracked(key.getArray(), value.getArray());
+                storageTransaction.putUntracked(key.getBytes(), value.getBytes());
             } catch (RocksDBException e) {
                 throw exception(e);
             } finally {
@@ -437,7 +437,7 @@ public abstract class RocksStorage implements Storage {
             try {
                 deleteCloseSchemaWriteLock.readLock().lock();
                 if (!isOpen()) throw TypeDBException.of(RESOURCE_CLOSED);
-                storageTransaction.mergeUntracked(key.getArray(), value.getArray());
+                storageTransaction.mergeUntracked(key.getBytes(), value.getBytes());
             } catch (RocksDBException e) {
                 throw exception(e);
             } finally {

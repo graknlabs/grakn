@@ -55,9 +55,9 @@ public abstract class ByteArray implements Comparable<ByteArray> {
         return new ByteArray.Base(new byte[]{});
     }
 
-    public abstract byte[] getArray();
+    public abstract byte[] getBytes();
 
-    public abstract byte[] cloneArray();
+    public abstract byte[] cloneBytes();
 
     public abstract boolean isEmpty();
 
@@ -111,7 +111,7 @@ public abstract class ByteArray implements Comparable<ByteArray> {
     public abstract boolean hasPrefix(ByteArray prefix);
 
     public String toHexString() {
-        return Bytes.bytesToHexString(getArray());
+        return Bytes.bytesToHexString(getBytes());
     }
 
     public static ByteArray fromHexString(String string) {
@@ -169,7 +169,7 @@ public abstract class ByteArray implements Comparable<ByteArray> {
 
     public short decodeSortedAsShort() {
         assert length() == SHORT_SIZE;
-        byte[] clone = cloneArray();
+        byte[] clone = cloneBytes();
         clone[0] = (byte) (clone[0] ^ 0x80);
         return ByteBuffer.wrap(clone).getShort();
     }
@@ -185,7 +185,7 @@ public abstract class ByteArray implements Comparable<ByteArray> {
 
     public long decodeSortedAsInteger() {
         assert length() == INTEGER_SIZE;
-        byte[] clone = cloneArray();
+        byte[] clone = cloneBytes();
         clone[0] = (byte) (clone[0] ^ 0x80);
         return ByteBuffer.wrap(clone).getInt();
     }
@@ -205,7 +205,7 @@ public abstract class ByteArray implements Comparable<ByteArray> {
 
     public long decodeSortedAsLong() {
         assert length() == LONG_SIZE;
-        byte[] clone = cloneArray();
+        byte[] clone = cloneBytes();
         clone[0] = (byte) (clone[0] ^ 0x80);
         return ByteBuffer.wrap(clone).getLong();
     }
@@ -240,7 +240,7 @@ public abstract class ByteArray implements Comparable<ByteArray> {
 
     public double decodeSortedAsDouble() {
         assert length() == DOUBLE_SIZE;
-        byte[] clone = cloneArray();
+        byte[] clone = cloneBytes();
         if ((clone[0] & 0x80) == 0x80) {
             clone[0] = (byte) (clone[0] ^ 0x80);
         } else {
@@ -280,7 +280,7 @@ public abstract class ByteArray implements Comparable<ByteArray> {
      */
     @Override
     public int compareTo(ByteArray that) {
-        return UnsignedBytes.lexicographicalComparator().compare(getArray(), that.getArray());
+        return UnsignedBytes.lexicographicalComparator().compare(getBytes(), that.getBytes());
     }
 
     @Override
@@ -309,7 +309,7 @@ public abstract class ByteArray implements Comparable<ByteArray> {
 
     @Override
     public String toString() {
-        return Arrays.toString(getArray());
+        return Arrays.toString(getBytes());
     }
 
     public static class Base extends ByteArray {
@@ -319,12 +319,12 @@ public abstract class ByteArray implements Comparable<ByteArray> {
         }
 
         @Override
-        public byte[] getArray() {
+        public byte[] getBytes() {
             return array;
         }
 
         @Override
-        public byte[] cloneArray() {
+        public byte[] cloneBytes() {
             return Arrays.copyOf(array, array.length);
         }
 
@@ -435,13 +435,13 @@ public abstract class ByteArray implements Comparable<ByteArray> {
         }
 
         @Override
-        public byte[] getArray() {
+        public byte[] getBytes() {
             if (arrayCache == null) arrayCache = Arrays.copyOfRange(array, start, start + length);
             return arrayCache;
         }
 
         @Override
-        public byte[] cloneArray() {
+        public byte[] cloneBytes() {
             return Arrays.copyOfRange(array, start, start + length);
         }
 
