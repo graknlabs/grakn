@@ -19,7 +19,7 @@
 package com.vaticle.typedb.core.rocks;
 
 import com.vaticle.typedb.core.common.collection.ByteArray;
-import com.vaticle.typedb.core.common.collection.Bytes;
+import com.vaticle.typedb.core.common.collection.ComparableBytes;
 import com.vaticle.typedb.core.common.exception.TypeDBException;
 import com.vaticle.typedb.core.common.iterator.AbstractFunctionalIterator;
 
@@ -28,7 +28,7 @@ import java.util.function.BiFunction;
 
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.RESOURCE_CLOSED;
 
-public final class RocksIterator<T extends Bytes.ByteComparable<T>> extends AbstractFunctionalIterator.Sorted<T> implements AutoCloseable {
+public final class RocksIterator<T extends ComparableBytes<T>> extends AbstractFunctionalIterator.Sorted<T> implements AutoCloseable {
 
     private final ByteArray prefix;
     private final RocksStorage storage;

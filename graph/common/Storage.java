@@ -19,7 +19,7 @@
 package com.vaticle.typedb.core.graph.common;
 
 import com.vaticle.typedb.core.common.collection.ByteArray;
-import com.vaticle.typedb.core.common.collection.Bytes;
+import com.vaticle.typedb.core.common.collection.ComparableBytes;
 import com.vaticle.typedb.core.common.exception.ErrorMessage;
 import com.vaticle.typedb.core.common.exception.TypeDBException;
 import com.vaticle.typedb.core.common.iterator.FunctionalIterator;
@@ -43,7 +43,7 @@ public interface Storage {
 
     void putUntracked(ByteArray key, ByteArray value);
 
-    <G extends Bytes.ByteComparable<G>> FunctionalIterator.Sorted<G> iterate(ByteArray key, BiFunction<ByteArray, ByteArray, G> constructor);
+    <G extends ComparableBytes<G>> FunctionalIterator.Sorted<G> iterate(ByteArray key, BiFunction<ByteArray, ByteArray, G> constructor);
 
     TypeDBException exception(ErrorMessage error);
 
@@ -57,7 +57,7 @@ public interface Storage {
         throw exception(TypeDBException.of(ILLEGAL_CAST, className(this.getClass()), className(Schema.class)));
     }
 
-    class SortedPair<T extends Bytes.ByteComparable<T>, U> implements Bytes.ByteComparable<SortedPair<T, U>> {
+    class SortedPair<T extends ComparableBytes<T>, U> implements ComparableBytes<SortedPair<T, U>> {
 
         T first;
         U second;

@@ -18,10 +18,9 @@
 
 package com.vaticle.typedb.core.graph;
 
-import com.vaticle.typedb.common.collection.ConcurrentSet;
 import com.vaticle.typedb.common.collection.Pair;
 import com.vaticle.typedb.core.common.collection.ByteArray;
-import com.vaticle.typedb.core.common.collection.Bytes;
+import com.vaticle.typedb.core.common.collection.ComparableBytes;
 import com.vaticle.typedb.core.common.exception.TypeDBCheckedException;
 import com.vaticle.typedb.core.common.exception.TypeDBException;
 import com.vaticle.typedb.core.common.iterator.FunctionalIterator;
@@ -858,7 +857,7 @@ public class ThingGraph {
             return bytes != null ? bytes.decodeLong() : 0;
         }
 
-        public abstract static class CountJob implements Bytes.ByteComparable<CountJob> {
+        public abstract static class CountJob implements ComparableBytes<CountJob> {
 
             private final Encoding.Statistics.JobOperation value;
             private final ByteArray key;
