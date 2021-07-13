@@ -22,12 +22,12 @@ import com.vaticle.typedb.core.common.exception.TypeDBException;
 
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_ARGUMENT;
 
-public class FinaliseHandledIterator<T> extends AbstractFunctionalIterator<T> implements FunctionalIterator<T> {
+class FinaliseHandledIterator<T> extends AbstractFunctionalIterator<T> implements FunctionalIterator<T> {
 
     private final FunctionalIterator<T> iterator;
     private final Runnable function;
 
-    public FinaliseHandledIterator(FunctionalIterator<T> iterator, Runnable function) {
+    FinaliseHandledIterator(FunctionalIterator<T> iterator, Runnable function) {
         this.iterator = iterator;
         this.function = function;
     }

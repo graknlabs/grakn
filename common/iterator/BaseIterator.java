@@ -31,7 +31,7 @@ class BaseIterator<T> extends AbstractFunctionalIterator<T> {
 
     private final Either<FunctionalIterator<T>, Iterator<T>> iterator;
 
-    public BaseIterator(Either<FunctionalIterator<T>, Iterator<T>> iterator) {
+    BaseIterator(Either<FunctionalIterator<T>, Iterator<T>> iterator) {
         this.iterator = iterator;
     }
 

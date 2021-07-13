@@ -18,6 +18,8 @@
 
 package com.vaticle.typedb.core.common.collection;
 
+import java.util.Objects;
+
 public class KeyValue<T extends Comparable<T>, U> implements Comparable<KeyValue<T, U>> {
 
     T key;
@@ -43,5 +45,18 @@ public class KeyValue<T extends Comparable<T>, U> implements Comparable<KeyValue
     @Override
     public int compareTo(KeyValue<T, U> other) {
         return key().compareTo(other.key());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        KeyValue<?, ?> that = (KeyValue<?, ?>) o;
+        return key.equals(that.key) && value.equals(that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(key, value);
     }
 }

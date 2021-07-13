@@ -33,11 +33,11 @@ class DistinctIterator<T> extends AbstractFunctionalIterator<T> {
     private final Set<T> consumed;
     private T next;
 
-    public DistinctIterator(FunctionalIterator<T> iterator) {
+    DistinctIterator(FunctionalIterator<T> iterator) {
         this(iterator, new HashSet<>());
     }
 
-    public DistinctIterator(FunctionalIterator<T> iterator, Set<T> duplicates) {
+    DistinctIterator(FunctionalIterator<T> iterator, Set<T> duplicates) {
         this.iterator = iterator;
         this.consumed = duplicates;
         this.next = null;
