@@ -66,11 +66,11 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
         return direction.isIn() ? EdgeDirected.in(edge) : EdgeDirected.out(edge);
     }
 
-    static class ThingIteratorBuilderImpl implements ThingIteratorBuilder {
+    static class IteratorBuilderImpl implements IteratorBuilder {
 
         private final FunctionalIterator<ThingEdge> edgeIterator;
 
-        ThingIteratorBuilderImpl(FunctionalIterator<ThingEdge> edgeIterator) {
+        IteratorBuilderImpl(FunctionalIterator<ThingEdge> edgeIterator) {
             this.edgeIterator = edgeIterator;
         }
 
@@ -90,11 +90,11 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
         }
     }
 
-    static class ThingIteratorSortedBuilderImpl implements ThingIteratorSortedBuilder {
+    static class SortedIteratorBuilderImpl implements SortedIteratorBuilder {
 
         private final FunctionalIterator.Sorted<EdgeDirected> sortableEdges;
 
-        ThingIteratorSortedBuilderImpl(FunctionalIterator.Sorted<EdgeDirected> sortableEdges) {
+        SortedIteratorBuilderImpl(FunctionalIterator.Sorted<EdgeDirected> sortableEdges) {
             this.sortableEdges = sortableEdges;
         }
 
@@ -141,31 +141,31 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
         }
 
         @Override
-        public ThingIteratorBuilderImpl edge(Encoding.Edge.Thing encoding) {
-            return new ThingIteratorBuilderImpl(edgeIterator(encoding));
+        public IteratorBuilderImpl edge(Encoding.Edge.Thing encoding) {
+            return new IteratorBuilderImpl(edgeIterator(encoding));
         }
 
         @Override
-        public ThingIteratorSortedBuilder edgeHas(IID... lookAhead) {
-            return new ThingIteratorSortedBuilderImpl(edgeIteratorSorted(Encoding.Edge.Thing.HAS, lookAhead));
+        public SortedIteratorBuilder edgeHas(IID... lookAhead) {
+            return new SortedIteratorBuilderImpl(edgeIteratorSorted(Encoding.Edge.Thing.HAS, lookAhead));
         }
 
         @Override
-        public ThingIteratorSortedBuilder edgePlaying(IID... lookAhead) {
-            return new ThingIteratorSortedBuilderImpl(edgeIteratorSorted(Encoding.Edge.Thing.PLAYING, lookAhead));
+        public SortedIteratorBuilder edgePlaying(IID... lookAhead) {
+            return new SortedIteratorBuilderImpl(edgeIteratorSorted(Encoding.Edge.Thing.PLAYING, lookAhead));
         }
 
         @Override
-        public ThingIteratorSortedBuilder edgeRelating(IID... lookAhead) {
-            return new ThingIteratorSortedBuilderImpl(edgeIteratorSorted(Encoding.Edge.Thing.RELATING, lookAhead));
+        public SortedIteratorBuilder edgeRelating(IID... lookAhead) {
+            return new SortedIteratorBuilderImpl(edgeIteratorSorted(Encoding.Edge.Thing.RELATING, lookAhead));
         }
 
         @Override
-        public ThingIteratorSortedBuilder edgeRolePlayer(IID roleType, IID... lookAhead) {
+        public SortedIteratorBuilder edgeRolePlayer(IID roleType, IID... lookAhead) {
             IID[] combinedLookahead = new IID[1 + lookAhead.length];
             combinedLookahead[0] = roleType;
             System.arraycopy(lookAhead, 0, combinedLookahead, 1, lookAhead.length);
-            return new ThingIteratorSortedBuilderImpl(edgeIteratorSorted(Encoding.Edge.Thing.ROLEPLAYER, combinedLookahead));
+            return new SortedIteratorBuilderImpl(edgeIteratorSorted(Encoding.Edge.Thing.ROLEPLAYER, combinedLookahead));
         }
 
         @Override
@@ -366,31 +366,31 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
             }
 
             @Override
-            public ThingIteratorBuilderImpl edge(Encoding.Edge.Thing encoding) {
-                return new ThingIteratorBuilderImpl(bufferedEdgeIterator(encoding, new IID[]{}).map(EdgeDirected::getEdge));
+            public IteratorBuilderImpl edge(Encoding.Edge.Thing encoding) {
+                return new IteratorBuilderImpl(bufferedEdgeIterator(encoding, new IID[]{}).map(EdgeDirected::getEdge));
             }
 
             @Override
-            public ThingIteratorSortedBuilder edgeHas(IID... lookAhead) {
-                return new ThingIteratorSortedBuilderImpl(bufferedEdgeIterator(Encoding.Edge.Thing.HAS, lookAhead));
+            public SortedIteratorBuilder edgeHas(IID... lookAhead) {
+                return new SortedIteratorBuilderImpl(bufferedEdgeIterator(Encoding.Edge.Thing.HAS, lookAhead));
             }
 
             @Override
-            public ThingIteratorSortedBuilder edgePlaying(IID... lookAhead) {
-                return new ThingIteratorSortedBuilderImpl(bufferedEdgeIterator(Encoding.Edge.Thing.PLAYING, lookAhead));
+            public SortedIteratorBuilder edgePlaying(IID... lookAhead) {
+                return new SortedIteratorBuilderImpl(bufferedEdgeIterator(Encoding.Edge.Thing.PLAYING, lookAhead));
             }
 
             @Override
-            public ThingIteratorSortedBuilder edgeRelating(IID... lookAhead) {
-                return new ThingIteratorSortedBuilderImpl(bufferedEdgeIterator(Encoding.Edge.Thing.RELATING, lookAhead));
+            public SortedIteratorBuilder edgeRelating(IID... lookAhead) {
+                return new SortedIteratorBuilderImpl(bufferedEdgeIterator(Encoding.Edge.Thing.RELATING, lookAhead));
             }
 
             @Override
-            public ThingIteratorSortedBuilder edgeRolePlayer(IID roleType, IID... lookAhead) {
+            public SortedIteratorBuilder edgeRolePlayer(IID roleType, IID... lookAhead) {
                 IID[] merged = new IID[1 + lookAhead.length];
                 merged[0] = roleType;
                 System.arraycopy(lookAhead, 0, merged, 1, lookAhead.length);
-                return new ThingIteratorSortedBuilderImpl(bufferedEdgeIterator(Encoding.Edge.Thing.ROLEPLAYER, merged));
+                return new SortedIteratorBuilderImpl(bufferedEdgeIterator(Encoding.Edge.Thing.ROLEPLAYER, merged));
             }
 
             @Override
@@ -435,31 +435,31 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
             }
 
             @Override
-            public ThingIteratorBuilderImpl edge(Encoding.Edge.Thing encoding) {
-                return new ThingIteratorBuilderImpl(edgeIterator(encoding));
+            public IteratorBuilderImpl edge(Encoding.Edge.Thing encoding) {
+                return new IteratorBuilderImpl(edgeIterator(encoding));
             }
 
             @Override
-            public ThingIteratorSortedBuilder edgeHas(IID... lookAhead) {
-                return new ThingIteratorSortedBuilderImpl(edgeIteratorSorted(Encoding.Edge.Thing.HAS, lookAhead));
+            public SortedIteratorBuilder edgeHas(IID... lookAhead) {
+                return new SortedIteratorBuilderImpl(edgeIteratorSorted(Encoding.Edge.Thing.HAS, lookAhead));
             }
 
             @Override
-            public ThingIteratorSortedBuilder edgePlaying(IID... lookAhead) {
-                return new ThingIteratorSortedBuilderImpl(edgeIteratorSorted(Encoding.Edge.Thing.PLAYING, lookAhead));
+            public SortedIteratorBuilder edgePlaying(IID... lookAhead) {
+                return new SortedIteratorBuilderImpl(edgeIteratorSorted(Encoding.Edge.Thing.PLAYING, lookAhead));
             }
 
             @Override
-            public ThingIteratorSortedBuilder edgeRelating(IID... lookAhead) {
-                return new ThingIteratorSortedBuilderImpl(edgeIteratorSorted(Encoding.Edge.Thing.RELATING, lookAhead));
+            public SortedIteratorBuilder edgeRelating(IID... lookAhead) {
+                return new SortedIteratorBuilderImpl(edgeIteratorSorted(Encoding.Edge.Thing.RELATING, lookAhead));
             }
 
             @Override
-            public ThingIteratorSortedBuilder edgeRolePlayer(IID roleType, IID... lookAhead) {
+            public SortedIteratorBuilder edgeRolePlayer(IID roleType, IID... lookAhead) {
                 IID[] merged = new IID[1 + lookAhead.length];
                 merged[0] = roleType;
                 System.arraycopy(lookAhead, 0, merged, 1, lookAhead.length);
-                return new ThingIteratorSortedBuilderImpl(edgeIteratorSorted(Encoding.Edge.Thing.ROLEPLAYER, merged));
+                return new SortedIteratorBuilderImpl(edgeIteratorSorted(Encoding.Edge.Thing.ROLEPLAYER, merged));
             }
 
             @Override

@@ -21,14 +21,12 @@ package com.vaticle.typedb.core.graph.adjacency;
 import com.vaticle.typedb.core.common.exception.TypeDBException;
 import com.vaticle.typedb.core.common.iterator.FunctionalIterator;
 import com.vaticle.typedb.core.graph.common.Encoding;
-import com.vaticle.typedb.core.graph.edge.Edge;
 import com.vaticle.typedb.core.graph.edge.ThingEdge;
 import com.vaticle.typedb.core.graph.iid.EdgeIID;
 import com.vaticle.typedb.core.graph.iid.IID;
 import com.vaticle.typedb.core.graph.vertex.ThingVertex;
 
 import java.util.Arrays;
-import java.util.function.Function;
 
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_OPERATION;
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_STATE;
@@ -44,7 +42,7 @@ public interface ThingAdjacency {
      * @param encoding the {@code Encoding} to filter the type of edges
      * @return an {@code IteratorBuilder} to retrieve vertices of a set of edges.
      */
-    ThingIteratorBuilder edge(Encoding.Edge.Thing encoding);
+    IteratorBuilder edge(Encoding.Edge.Thing encoding);
 
     /**
      * Returns an {@code ThingIteratorSortedBuilder} to retrieve vertices of a set of edges.
@@ -57,7 +55,7 @@ public interface ThingAdjacency {
      * @param lookAhead information of the adjacent edge to filter the edges with
      * @return an {@code IteratorBuilder} to retrieve vertices of a set of edges.
      */
-    default ThingIteratorSortedBuilder edge(Encoding.Edge.Thing encoding, IID... lookAhead) {
+    default SortedIteratorBuilder edge(Encoding.Edge.Thing encoding, IID... lookAhead) {
         if (encoding == Encoding.Edge.Thing.HAS) return edgeHas(lookAhead);
         else if (encoding == Encoding.Edge.Thing.PLAYING) return edgeHas(lookAhead);
         else if (encoding == Encoding.Edge.Thing.RELATING) return edgeHas(lookAhead);
@@ -68,13 +66,13 @@ public interface ThingAdjacency {
         } else throw TypeDBException.of(ILLEGAL_STATE);
     }
 
-    ThingIteratorSortedBuilder edgeHas(IID... lookAhead);
+    SortedIteratorBuilder edgeHas(IID... lookAhead);
 
-    ThingIteratorSortedBuilder edgePlaying(IID... lookAhead);
+    SortedIteratorBuilder edgePlaying(IID... lookAhead);
 
-    ThingIteratorSortedBuilder edgeRelating(IID... lookAhead);
+    SortedIteratorBuilder edgeRelating(IID... lookAhead);
 
-    ThingIteratorSortedBuilder edgeRolePlayer(IID roleType, IID... lookAhead);
+    SortedIteratorBuilder edgeRolePlayer(IID roleType, IID... lookAhead);
 
     /**
      * Returns an edge of type {@code encoding} that connects to an {@code adjacent}
@@ -97,7 +95,7 @@ public interface ThingAdjacency {
      */
     ThingEdge edge(Encoding.Edge.Thing encoding, ThingVertex adjacent, ThingVertex optimised);
 
-    interface ThingIteratorBuilder {
+    interface IteratorBuilder {
 
         FunctionalIterator<ThingVertex> from();
 
@@ -106,7 +104,7 @@ public interface ThingAdjacency {
         FunctionalIterator<ThingEdge> get();
     }
 
-    interface ThingIteratorSortedBuilder {
+    interface SortedIteratorBuilder {
 
         FunctionalIterator<ThingVertex> from();
 
