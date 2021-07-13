@@ -30,7 +30,7 @@ class FlatMappedIterator<T, U> extends AbstractFunctionalIterator<U> {
 
     private enum State {INIT, ACTIVE, COMPLETED}
 
-    public FlatMappedIterator(FunctionalIterator<T> iterator, Function<T, FunctionalIterator<U>> mappingFn) {
+    FlatMappedIterator(FunctionalIterator<T> iterator, Function<T, FunctionalIterator<U>> mappingFn) {
         this.sourceIterator = iterator;
         this.mappingFn = mappingFn;
         this.state = State.INIT;

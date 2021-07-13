@@ -66,12 +66,12 @@ class DistinctIterator<T> extends AbstractFunctionalIterator<T> {
         iterator.recycle();
     }
 
-    public static class Sorted<T extends Comparable<? super T>> extends AbstractFunctionalIterator.Sorted<T> {
+    static class Sorted<T extends Comparable<? super T>> extends AbstractFunctionalIterator.Sorted<T> {
 
         private final FunctionalIterator.Sorted<T> source;
         T last;
 
-        public Sorted(AbstractFunctionalIterator.Sorted<T> source) {
+        Sorted(AbstractFunctionalIterator.Sorted<T> source) {
             this.source = source;
             last = null;
         }

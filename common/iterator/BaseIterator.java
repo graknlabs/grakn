@@ -57,7 +57,7 @@ class BaseIterator<T> extends AbstractFunctionalIterator<T> {
         private T next;
         private T last;
 
-        public Sorted(NavigableSet<T> source) {
+        Sorted(NavigableSet<T> source) {
             this.source = source;
             this.iterator = source.iterator();
             this.last = null;

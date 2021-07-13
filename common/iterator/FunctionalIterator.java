@@ -95,6 +95,7 @@ public interface FunctionalIterator<T> extends Iterator<T> {
 
         T peek();
 
+        @SuppressWarnings("unchecked")
         Sorted<T> merge(Sorted<T>... iterators);
 
         Sorted<T> distinct();

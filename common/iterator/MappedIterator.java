@@ -51,10 +51,6 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
         iterator.recycle();
     }
 
-    /*
-    The forward mapping function must return a new iterator that is sorted with respect to U's comparator.
-    The reverse mapping function must be the inverse of the forward mapping function.
-     */
     static class Sorted<T extends Comparable<? super T>, U extends Comparable<? super U>>
             extends AbstractFunctionalIterator.Sorted<U> {
 
@@ -67,7 +63,12 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
 
         private enum State {EMPTY, FETCHED, COMPLETED};
 
-        public Sorted(FunctionalIterator.Sorted<T> source, Function<T, U> mappingFn, Function<U, T> reverseMappingFn) {
+        /**
+         * @param source - iterator to create mapped iterators from
+         * @param mappingFn - The forward mapping function must return a new iterator that is sorted with respect to U's comparator.
+         * @param reverseMappingFn - The reverse mapping function must be the inverse of the forward mapping function.
+         */
+        Sorted(FunctionalIterator.Sorted<T> source, Function<T, U> mappingFn, Function<U, T> reverseMappingFn) {
             this.source = source;
             this.mappingFn = mappingFn;
             this.reverseMappingFn = reverseMappingFn;

@@ -29,7 +29,7 @@ import java.util.function.Function;
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_ARGUMENT;
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_STATE;
 
-public class MergeMappedIterator<T, U extends Comparable<? super U>> extends AbstractFunctionalIterator.Sorted<U> {
+class MergeMappedIterator<T, U extends Comparable<? super U>> extends AbstractFunctionalIterator.Sorted<U> {
 
     private final FunctionalIterator<T> source;
     private final Function<T, FunctionalIterator.Sorted<U>> mappingFn;
@@ -42,7 +42,7 @@ public class MergeMappedIterator<T, U extends Comparable<? super U>> extends Abs
         INIT, NOT_READY, FETCHED, COMPLETED;
     }
 
-    public MergeMappedIterator(FunctionalIterator<T> source, Function<T, FunctionalIterator.Sorted<U>> mappingFn) {
+    MergeMappedIterator(FunctionalIterator<T> source, Function<T, FunctionalIterator.Sorted<U>> mappingFn) {
         this.source = source;
         this.mappingFn = mappingFn;
         this.queue = new PriorityQueue<>();
