@@ -102,6 +102,5 @@ public interface FunctionalIterator<T> extends Iterator<T> {
         Sorted<T> filter(Predicate<T> predicate);
 
         <U extends Comparable<? super U>> Sorted<U> mapSorted(Function<T, U> mappingFn, Function<U, T> reverseMappingFn);
-
     }
 }
