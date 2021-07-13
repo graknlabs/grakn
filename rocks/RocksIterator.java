@@ -100,7 +100,7 @@ public final class RocksIterator extends AbstractFunctionalIterator.Sorted<KeyVa
 
     private synchronized boolean initialiseAndCheck() {
         if (state != State.COMPLETED) {
-            initialise(prefix.getComparable());
+            initialise(prefix);
             return checkValidNext();
         } else {
             return false;
