@@ -64,7 +64,7 @@ public abstract class AbstractFunctionalIterator<T> implements FunctionalIterato
     @Override
     public <U extends Comparable<U>> FunctionalIterator.Sorted<U> mergeMap(
             Function<T, FunctionalIterator.Sorted<U>> mappingFn) {
-        return new MergeMapIterator<>(this, mappingFn);
+        return new MergeMappedIterator<>(this, mappingFn);
     }
 
     @Override
@@ -241,7 +241,7 @@ public abstract class AbstractFunctionalIterator<T> implements FunctionalIterato
         @Override
         public final FunctionalIterator.Sorted<T> merge(FunctionalIterator.Sorted<T>... iterators) {
             List<FunctionalIterator.Sorted<T>> iters = list(list(iterators), this);
-            return new MergeMapIterator<>(iterate(iters), e -> e);
+            return new MergeMappedIterator<>(iterate(iters), e -> e);
         }
 
         @Override

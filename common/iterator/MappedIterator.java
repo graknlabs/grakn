@@ -52,9 +52,8 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
     }
 
     /*
-    UNSAFE
-    The user must guarantee the mapping function preserves the sort order that the the source provides,
-    in the new domain.
+    The forward mapping function must return a new iterator that is sorted with respect to U's comparator.
+    The reverse mapping function must be the inverse of the forward mapping function.
      */
     static class Sorted<T extends Comparable<? super T>, U extends Comparable<? super U>>
             extends AbstractFunctionalIterator.Sorted<U> {
@@ -106,7 +105,9 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
 
         private boolean fetchAndCheck() {
             if (source.hasNext()) {
-                next = mappingFn.apply(source.next());
+                T value = source.next();
+                this.next = mappingFn.apply(value);
+                assert reverseMappingFn.apply(this.next).equals(value);
                 state = State.FETCHED;
             } else {
                 state = State.COMPLETED;
