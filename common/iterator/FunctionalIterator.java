@@ -37,9 +37,9 @@ public interface FunctionalIterator<T> extends Iterator<T> {
 
     <U> FunctionalIterator<U> map(Function<T, U> mappingFn);
 
-    <U> FunctionalIterator<U> flatMap(Function<T, FunctionalIterator<U>> flatMappingFn);
+    <U> FunctionalIterator<U> flatMap(Function<T, FunctionalIterator<U>> mappingFn);
 
-    <U extends Comparable<U>> Sorted<U> flatMerge(Function<T, Sorted<U>> flatMappingFn);
+    <U extends Comparable<U>> Sorted<U> mergeMap(Function<T, Sorted<U>> mappingFn);
 
     FunctionalIterator<T> filter(Predicate<T> predicate);
 
@@ -91,7 +91,7 @@ public interface FunctionalIterator<T> extends Iterator<T> {
 
     interface Sorted<T extends Comparable<? super T>> extends FunctionalIterator<T> {
 
-        void seek(T target);
+        void forward(T target);
 
         T peek();
 

@@ -81,9 +81,9 @@ public class FinaliseHandledIterator<T> extends AbstractFunctionalIterator<T> im
         }
 
         @Override
-        public void seek(T target) {
-            if (last != null && target.compareTo(last) < 0) throw TypeDBException.of(ILLEGAL_ARGUMENT); // cannot use backward seeks
-            source.seek(target);
+        public void forward(T target) {
+            if (last != null && target.compareTo(last) < 0) throw TypeDBException.of(ILLEGAL_ARGUMENT);
+            source.forward(target);
         }
 
         @Override

@@ -83,7 +83,7 @@ public final class RocksIterator extends AbstractFunctionalIterator.Sorted<KeyVa
     }
 
     @Override
-    public synchronized void seek(KeyValue<ByteArray, ByteArray> target) {
+    public synchronized void forward(KeyValue<ByteArray, ByteArray> target) {
         if (state == State.INIT) initialise(target.key());
         else internalRocksIterator.seek(target.key().getBytes());
         state = State.SEEKED_EMPTY;

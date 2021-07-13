@@ -96,9 +96,9 @@ class FilteredIterator<T> extends AbstractFunctionalIterator<T> {
         }
 
         @Override
-        public void seek(T target) {
-            if (last != null && target.compareTo(last) < 0) throw TypeDBException.of(ILLEGAL_ARGUMENT); // cannot use backward seeks
-            this.source.seek(target);
+        public void forward(T target) {
+            if (last != null && target.compareTo(last) < 0) throw TypeDBException.of(ILLEGAL_ARGUMENT);
+            this.source.forward(target);
             this.next = null;
         }
 

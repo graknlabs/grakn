@@ -236,7 +236,7 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
                 iids = newIIDs;
             }
 
-            return iterate(iids).flatMerge(iid -> {
+            return iterate(iids).mergeMap(iid -> {
                 ConcurrentNavigableMap<EdgeDirected, ThingEdge> res;
                 return (res = edges.get(iid)) != null ? iterateSorted(res.keySet()) : emptySorted();
             });

@@ -56,7 +56,8 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
     The user must guarantee the mapping function preserves the sort order that the the source provides,
     in the new domain.
      */
-    static class Sorted<T extends Comparable<? super T>, U extends Comparable<? super U>> extends AbstractFunctionalIterator.Sorted<U> {
+    static class Sorted<T extends Comparable<? super T>, U extends Comparable<? super U>>
+            extends AbstractFunctionalIterator.Sorted<U> {
 
         private final FunctionalIterator.Sorted<T> source;
         private final Function<T, U> mappingFn;
@@ -76,10 +77,10 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
         }
 
         @Override
-        public void seek(U target) {
-            if (last != null && target.compareTo(last) < 0) throw TypeDBException.of(ILLEGAL_ARGUMENT); // cannot use backward seeks
+        public void forward(U target) {
+            if (last != null && target.compareTo(last) < 0) throw TypeDBException.of(ILLEGAL_ARGUMENT);
             T reverseMapped = reverseMappingFn.apply(target);
-            source.seek(reverseMapped);
+            source.forward(reverseMapped);
             state = State.EMPTY;
         }
 

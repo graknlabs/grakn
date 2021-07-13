@@ -99,10 +99,6 @@ public class Iterators {
         return new TreeIterator<>(root, childrenFn);
     }
 
-    public static <T> SynchronisedIterator<T> synchronised(FunctionalIterator<T> iterator) {
-        return new SynchronisedIterator<>(iterator);
-    }
-
     public static <T> FunctionalIterator<List<T>> cartesian(List<FunctionalIterator<T>> iteratorProducers) {
         return new CartesianIterator<>(iteratorProducers);
     }
