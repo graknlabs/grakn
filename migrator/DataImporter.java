@@ -276,10 +276,12 @@ public class DataImporter implements Migrator {
                 long n;
                 if ((n = txs.incrementAndGet()) % 100 == 0) System.out.println("txn committed number: " + n);
                 transaction.commit();
-                ((RocksTransaction.Data) transaction).bufferedToPersistedThingIIDs().forEachRemaining(pair ->
-                        idMap.put(bufferedIIDsToOriginalIds.get(pair.first()), pair.second())
-                );
-                bufferedIIDsToOriginalIds.clear();
+                ((RocksTransaction.Data) transaction).bufferedToPersistedThingIIDs().forEachRemaining(pair -> {
+                    idMap.put(bufferedIIDsToOriginalIds.get(pair.first()), pair.second());
+                    bufferedIIDsToOriginalIds.remove(pair.first());
+                });
+                assert bufferedIIDsToOriginalIds.isEmpty();
+//                bufferedIIDsToOriginalIds.clear();
                 originalIdsToBufferedIIDs.clear();
             }
         }
