@@ -273,11 +273,6 @@ public abstract class ByteArray implements Comparable<ByteArray> {
         return LocalDateTime.ofInstant(Instant.ofEpochMilli(decodeSortedAsLong()), timeZoneID);
     }
 
-    /**
-     * This comparison function implements the same byte-wise lexicographic comparator that RocksDB comparators use
-     * See similar implementations at: https://stackoverflow.com/questions/5108091/java-comparator-for-byte-array-lexicographic
-     * Note: if this is performance bottleneck we could move to Guava's Unsafe comparator in the link above
-     */
     @Override
     public int compareTo(ByteArray that) {
         return UnsignedBytes.lexicographicalComparator().compare(getBytes(), that.getBytes());
