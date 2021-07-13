@@ -18,13 +18,30 @@
 
 package com.vaticle.typedb.core.common.collection;
 
-public interface ComparableBytes<T extends ComparableBytes<T>> extends Comparable<T> {
+public class KeyValue<T extends Comparable<T>, U> implements Comparable<KeyValue<T, U>> {
 
-    ByteArray getBytes();
+    T key;
+    U value;
 
-    @Override
-    default int compareTo(ComparableBytes o) {
-        return getBytes().compareTo(o.getBytes());
+    public KeyValue(T key, U value) {
+        this.key = key;
+        this.value = value;
     }
 
+    public static <T extends Comparable<T>, U> KeyValue<T, U> of(T first, U second) {
+        return new KeyValue<>(first, second);
+    }
+
+    public T key() {
+        return key;
+    }
+
+    public U value() {
+        return value;
+    }
+
+    @Override
+    public int compareTo(KeyValue<T, U> other) {
+        return key().compareTo(other.key());
+    }
 }

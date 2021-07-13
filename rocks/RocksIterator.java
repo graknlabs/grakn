@@ -19,37 +19,34 @@
 package com.vaticle.typedb.core.rocks;
 
 import com.vaticle.typedb.core.common.collection.ByteArray;
-import com.vaticle.typedb.core.common.collection.ComparableBytes;
+import com.vaticle.typedb.core.common.collection.KeyValue;
 import com.vaticle.typedb.core.common.exception.TypeDBException;
 import com.vaticle.typedb.core.common.iterator.AbstractFunctionalIterator;
 
 import java.util.NoSuchElementException;
-import java.util.function.BiFunction;
 
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.RESOURCE_CLOSED;
 
-public final class RocksIterator<T extends ComparableBytes<T>> extends AbstractFunctionalIterator.Sorted<T> implements AutoCloseable {
+public final class RocksIterator extends AbstractFunctionalIterator.Sorted<KeyValue<ByteArray, ByteArray>> implements AutoCloseable {
 
     private final ByteArray prefix;
     private final RocksStorage storage;
-    private final BiFunction<ByteArray, ByteArray, T> constructor;
     private org.rocksdb.RocksIterator internalRocksIterator;
     private State state;
-    private T next;
+    private KeyValue<ByteArray, ByteArray> next;
     private boolean isClosed;
 
     private enum State {INIT, EMPTY, SEEKED_EMPTY, FETCHED, COMPLETED}
 
-    RocksIterator(RocksStorage storage, ByteArray prefix, BiFunction<ByteArray, ByteArray, T> constructor) {
+    RocksIterator(RocksStorage storage, ByteArray prefix) {
         this.storage = storage;
         this.prefix = prefix;
-        this.constructor = constructor;
         state = State.INIT;
         isClosed = false;
     }
 
     @Override
-    public synchronized final T peek() {
+    public synchronized final KeyValue<ByteArray, ByteArray> peek() {
         if (!hasNext()) {
             if (isClosed) throw TypeDBException.of(RESOURCE_CLOSED);
             else throw new NoSuchElementException();
@@ -58,7 +55,7 @@ public final class RocksIterator<T extends ComparableBytes<T>> extends AbstractF
     }
 
     @Override
-    public synchronized final T next() {
+    public synchronized final KeyValue<ByteArray, ByteArray> next() {
         if (!hasNext()) {
             if (isClosed) throw TypeDBException.of(RESOURCE_CLOSED);
             else throw new NoSuchElementException();
@@ -86,9 +83,9 @@ public final class RocksIterator<T extends ComparableBytes<T>> extends AbstractF
     }
 
     @Override
-    public synchronized void seek(T target) {
-        if (state == State.INIT) initialise(target.getBytes());
-        else internalRocksIterator.seek(target.getBytes().getArray());
+    public synchronized void seek(KeyValue<ByteArray, ByteArray> target) {
+        if (state == State.INIT) initialise(target.key());
+        else internalRocksIterator.seek(target.key().getArray());
         state = State.SEEKED_EMPTY;
     }
 
@@ -103,7 +100,7 @@ public final class RocksIterator<T extends ComparableBytes<T>> extends AbstractF
 
     private synchronized boolean initialiseAndCheck() {
         if (state != State.COMPLETED) {
-            initialise(prefix.getBytes());
+            initialise(prefix.getComparable());
             return checkValidNext();
         } else {
             return false;
@@ -123,8 +120,7 @@ public final class RocksIterator<T extends ComparableBytes<T>> extends AbstractF
             recycle();
             return false;
         }
-        next = constructor.apply(key, ByteArray.of(internalRocksIterator.value()));
-        assert next.getBytes().equals(key);
+        next = KeyValue.of(key, ByteArray.of(internalRocksIterator.value()));
         state = State.FETCHED;
         return true;
     }

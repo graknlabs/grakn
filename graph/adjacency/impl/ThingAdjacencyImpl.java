@@ -20,6 +20,7 @@ package com.vaticle.typedb.core.graph.adjacency.impl;
 
 import com.vaticle.typedb.common.collection.ConcurrentSet;
 import com.vaticle.typedb.core.common.collection.ByteArray;
+import com.vaticle.typedb.core.common.collection.KeyValue;
 import com.vaticle.typedb.core.common.iterator.FunctionalIterator;
 import com.vaticle.typedb.core.graph.adjacency.ThingAdjacency;
 import com.vaticle.typedb.core.graph.common.Encoding;
@@ -124,15 +125,14 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
 
         private FunctionalIterator<ThingEdge> edgeIterator(Encoding.Edge.Thing encoding, IID... lookahead) {
             ByteArray iid = join(owner.iid().bytes(), infixIID(encoding, lookahead).bytes());
-            return owner.graph().storage().iterate(iid, (key, value) -> key)
-                    .map(key -> newPersistedEdge(EdgeIID.Thing.of(key)));
+            return owner.graph().storage().iterate(iid).map(keyValue -> newPersistedEdge(EdgeIID.Thing.of(keyValue.key())));
         }
 
         private FunctionalIterator.Sorted<EdgeDirected> edgeIteratorSorted(Encoding.Edge.Thing encoding, IID... lookahead) {
             ByteArray iid = join(owner.iid().bytes(), infixIID(encoding, lookahead).bytes());
-            return owner.graph().storage().iterate(iid, (key, value) -> key).mapSorted(
-                    key -> asSortable(newPersistedEdge(EdgeIID.Thing.of(key))),
-                    sortable -> sortable.key.bytes()
+            return owner.graph().storage().iterate(iid).mapSorted(
+                    keyValue -> asSortable(newPersistedEdge(EdgeIID.Thing.of(keyValue.key()))),
+                    sortable -> KeyValue.of(sortable.key.bytes(), ByteArray.empty())
             );
         }
 
@@ -412,9 +412,8 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
 
             private FunctionalIterator<ThingEdge> edgeIterator(Encoding.Edge.Thing encoding, IID... lookahead) {
                 ByteArray iid = join(owner.iid().bytes(), infixIID(encoding, lookahead).bytes());
-                FunctionalIterator<ThingEdge> storageIterator = owner.graph().storage().iterate(
-                        iid, (key, value) -> key).map(key -> cache(newPersistedEdge(EdgeIID.Thing.of(key)))
-                );
+                FunctionalIterator<ThingEdge> storageIterator = owner.graph().storage().iterate(iid)
+                        .map(keyValue -> cache(newPersistedEdge(EdgeIID.Thing.of(keyValue.key()))));
                 FunctionalIterator<ThingEdge> bufferedIterator = bufferedEdgeIterator(encoding, lookahead).map(EdgeDirected::getEdge);
                 return link(bufferedIterator, storageIterator).distinct();
             }
@@ -422,10 +421,10 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
             private FunctionalIterator.Sorted<EdgeDirected> edgeIteratorSorted(Encoding.Edge.Thing encoding, IID... lookahead) {
                 assert encoding != Encoding.Edge.Thing.ROLEPLAYER || lookahead.length >= 1;
                 ByteArray prefix = join(owner.iid().bytes(), infixIID(encoding, lookahead).bytes());
-                FunctionalIterator.Sorted<EdgeDirected> storageIterator = owner.graph().storage()
-                        .iterate(prefix, (key, value) -> key).mapSorted(
-                                key -> asSortable(cache(newPersistedEdge(EdgeIID.Thing.of(key)))),
-                                sortable -> sortable.key.bytes()
+                FunctionalIterator.Sorted<EdgeDirected> storageIterator = owner.graph().storage().iterate(prefix)
+                        .mapSorted(
+                                keyValue -> asSortable(cache(newPersistedEdge(EdgeIID.Thing.of(keyValue.key())))),
+                                sortable -> KeyValue.of(sortable.key.bytes(), ByteArray.empty())
                         );
                 FunctionalIterator.Sorted<EdgeDirected> bufferedIterator = bufferedEdgeIterator(encoding, lookahead);
                 return bufferedIterator.merge(storageIterator).distinct();

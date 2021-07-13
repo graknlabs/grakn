@@ -38,7 +38,7 @@ import static com.vaticle.typedb.core.common.collection.Bytes.SHORT_UNSIGNED_MAX
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.ThingWrite.ILLEGAL_STRING_SIZE;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
 
-public abstract class ByteArray implements ComparableBytes<ByteArray> {
+public abstract class ByteArray implements Comparable<ByteArray> {
 
     final byte[] array;
     private int hash = 0;
@@ -53,11 +53,6 @@ public abstract class ByteArray implements ComparableBytes<ByteArray> {
 
     public static ByteArray empty() {
         return new ByteArray.Base(new byte[]{});
-    }
-
-    @Override
-    public ByteArray getBytes() {
-        return this;
     }
 
     public abstract byte[] getArray();
