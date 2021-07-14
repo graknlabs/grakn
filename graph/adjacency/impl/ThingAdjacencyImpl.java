@@ -94,18 +94,19 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
 
         private final FunctionalIterator.Sorted<EdgeDirected> sortableEdges;
 
-        SortedIteratorBuilderImpl(FunctionalIterator.Sorted<EdgeDirected> sortableEdges) {
+        SortedIteratorBuilderImpl(ByteArray fixedIIDPrefix, FunctionalIterator.Sorted<EdgeDirected> sortableEdges) {
             this.sortableEdges = sortableEdges;
         }
 
         @Override
         public FunctionalIterator<ThingVertex> from() {
-            return sortableEdges.map(sortable -> sortable.getEdge().from());
+            // TODO one of these directions should use `distinct()`
+            return sortableEdges.mapSorted(sortable -> sortable.getEdge().from());
         }
 
         @Override
         public FunctionalIterator<ThingVertex> to() {
-            return sortableEdges.map(sortable -> sortable.getEdge().to());
+            return sortableEdges.map(sortable -> sortable.getEdge().to(), vertex -> );
         }
 
         @Override
@@ -147,7 +148,7 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
 
         @Override
         public SortedIteratorBuilder edgeHas(IID... lookAhead) {
-            return new SortedIteratorBuilderImpl(edgeIteratorSorted(Encoding.Edge.Thing.HAS, lookAhead));
+            return new SortedIteratorBuilderImpl(iid, edgeIteratorSorted(Encoding.Edge.Thing.HAS, lookAhead));
         }
 
         @Override
@@ -251,6 +252,7 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
             FunctionalIterator<EdgeDirected> iterator = bufferedEdgeIterator(
                     encoding, new IID[]{optimised.iid().type(), adjacent.iid().prefix(), adjacent.iid().type()}
             );
+            // TODO optimise this with `forward()` to a virtual edge
             ThingEdge edge = null;
             while (iterator.hasNext()) {
                 if (predicate.test(edge = iterator.next().getEdge())) break;
@@ -265,6 +267,7 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
             assert !encoding.isOptimisation();
             Predicate<ThingEdge> predicate = direction.isOut() ? e -> e.to().equals(adjacent) : e -> e.from().equals(adjacent);
             FunctionalIterator<EdgeDirected> iterator = bufferedEdgeIterator(encoding, new IID[]{adjacent.iid().prefix(), adjacent.iid().type()});
+            // TODO optimise this with `forward()` to a virtual edge
             ThingEdge edge = null;
             while (iterator.hasNext()) {
                 if (predicate.test(edge = iterator.next().getEdge())) break;

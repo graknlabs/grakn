@@ -89,6 +89,7 @@ public interface FunctionalIterator<T> extends Iterator<T> {
 
     void recycle();
 
+    // TODO create another seekable subtype
     interface Sorted<T extends Comparable<? super T>> extends FunctionalIterator<T> {
 
         void forward(T target);
