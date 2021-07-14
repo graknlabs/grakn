@@ -60,7 +60,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -77,7 +76,7 @@ public class DataImporter implements Migrator {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataImporter.class);
     private static final Parser<DataProto.Item> ITEM_PARSER = DataProto.Item.parser();
-    private static final int BATCH_SIZE = 1000;
+    private static final int BATCH_SIZE = 10;
     private final RocksSession session;
     private final Executor importExecutor;
     private final Executor readerExecutor;
@@ -224,6 +223,7 @@ public class DataImporter implements Migrator {
             abstract int importItem(DataProto.Item item);
 
             void recordCreated(ByteArray newIID, String originalId) {
+                assert !originalIdsToBufferedIIDs.containsKey(originalId) && !idMap.containsKey(originalId);
                 bufferedIIDsToOriginalIds.put(newIID, originalId);
                 originalIdsToBufferedIIDs.put(originalId, newIID);
             }
