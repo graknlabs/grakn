@@ -564,6 +564,8 @@ public abstract class ErrorMessage extends com.vaticle.typedb.common.exception.E
                 new Migrator(7, "A player for relation type '%s' was expected but not found.");
         public static final Migrator INVALID_DATA =
                 new Migrator(8, "The data being imported is invalid.");
+        public static final Migrator IMPORT_CHECKSUM_MISMATCH =
+                new Migrator(9, "The import has finished but mismatches the required checksums.");
 
         private static final String codePrefix = "MIG";
         private static final String messagePrefix = "Migrator failure";

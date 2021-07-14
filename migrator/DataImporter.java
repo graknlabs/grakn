@@ -66,6 +66,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_STATE;
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Migrator.FILE_NOT_FOUND;
+import static com.vaticle.typedb.core.common.exception.ErrorMessage.Migrator.IMPORT_CHECKSUM_MISMATCH;
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Migrator.INVALID_DATA;
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Migrator.PLAYER_NOT_FOUND;
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Migrator.ROLE_TYPE_NOT_FOUND;
@@ -148,8 +149,9 @@ public class DataImporter implements Migrator {
             new EntitiesAndOwnerships().run();
             new CompleteRelations().run();
             insertSkippedRelations();
+            if (!checksum.validate(status)) throw TypeDBException.of(IMPORT_CHECKSUM_MISMATCH);
         } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
+            throw TypeDBException.of(e);
         } finally {
             LOG.info("Imported {} entities, {} attributes, {} relations ({} roles), {} ownerships",
                     status.entityCount.get(),
@@ -157,7 +159,6 @@ public class DataImporter implements Migrator {
                     status.relationCount.get(),
                     status.roleCount.get(),
                     status.ownershipCount.get());
-            close();
         }
     }
 
@@ -176,7 +177,7 @@ public class DataImporter implements Migrator {
         }
     }
 
-    private abstract class Import {
+    private abstract class Job {
 
         void run() throws InterruptedException, ExecutionException {
             BlockingQueue<DataProto.Item> items = readFile();
@@ -290,7 +291,7 @@ public class DataImporter implements Migrator {
 
     }
 
-    private class InitAndAttributes extends Import {
+    private class InitAndAttributes extends Job {
 
         @Override
         Worker createWorker(BlockingQueue<DataProto.Item> items) {
@@ -348,7 +349,7 @@ public class DataImporter implements Migrator {
         }
     }
 
-    private class EntitiesAndOwnerships extends Import {
+    private class EntitiesAndOwnerships extends Job {
 
         @Override
         Worker createWorker(BlockingQueue<DataProto.Item> items) {
@@ -381,7 +382,7 @@ public class DataImporter implements Migrator {
         }
     }
 
-    private class CompleteRelations extends Import {
+    private class CompleteRelations extends Job {
 
         @Override
         Worker createWorker(BlockingQueue<DataProto.Item> items) {
@@ -485,6 +486,7 @@ public class DataImporter implements Migrator {
     }
 
     private static class Checksum {
+
         private final long attributes;
         private final long entities;
         private final long relations;
@@ -497,6 +499,14 @@ public class DataImporter implements Migrator {
             this.relations = relations;
             this.ownerships = ownerships;
             this.roles = roles;
+        }
+
+        public boolean validate(Status status) {
+            return attributes == status.attributeCount.get() &&
+                    entities == status.entityCount.get() &&
+                    relations == status.relationCount.get() &&
+                    ownerships == status.ownershipCount.get() &&
+                    roles == status.roleCount.get();
         }
     }
 }

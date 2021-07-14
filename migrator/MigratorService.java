@@ -68,8 +68,6 @@ public class MigratorService extends MigratorGrpc.MigratorImplBase {
             }
             migratorJob.get();
             responseObserver.onCompleted();
-        } catch (InterruptedException | ExecutionException e) {
-            throw TypeDBException.of(UNEXPECTED_INTERRUPTION);
         } catch (Throwable e) {
             LOG.error(e.getMessage(), e);
             responseObserver.onError(exception(e));
