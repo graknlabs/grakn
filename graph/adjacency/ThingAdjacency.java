@@ -186,13 +186,13 @@ public interface ThingAdjacency {
             this.edge = edge;
         }
 
-        abstract EdgeIID.Thing getKey();
+        public abstract EdgeIID.Thing getKey();
 
         public static EdgeDirected in(ThingEdge edge) {
             EdgeIID.Thing inIID = edge.inIID();
             return new EdgeDirected(edge) {
                 @Override
-                EdgeIID.Thing getKey() {
+                public EdgeIID.Thing getKey() {
                     return inIID;
                 }
             };
@@ -202,7 +202,7 @@ public interface ThingAdjacency {
             EdgeIID.Thing outIID = edge.outIID();
             return new EdgeDirected(edge) {
                 @Override
-                EdgeIID.Thing getKey() {
+                public EdgeIID.Thing getKey() {
                     return outIID;
                 }
             };

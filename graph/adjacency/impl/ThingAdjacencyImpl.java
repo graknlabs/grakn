@@ -132,7 +132,7 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
             ByteArray iid = join(owner.iid().bytes(), infixIID(encoding, lookahead).bytes());
             return owner.graph().storage().iterate(iid).mapSorted(
                     keyValue -> asSortable(newPersistedEdge(EdgeIID.Thing.of(keyValue.key()))),
-                    sortable -> KeyValue.of(sortable.key.bytes(), ByteArray.empty())
+                    sortable -> KeyValue.of(sortable.getKey().bytes(), ByteArray.empty())
             );
         }
 
@@ -424,7 +424,7 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
                 FunctionalIterator.Sorted<EdgeDirected> storageIterator = owner.graph().storage().iterate(prefix)
                         .mapSorted(
                                 keyValue -> asSortable(cache(newPersistedEdge(EdgeIID.Thing.of(keyValue.key())))),
-                                sortable -> KeyValue.of(sortable.key.bytes(), ByteArray.empty())
+                                sortable -> KeyValue.of(sortable.getKey().bytes(), ByteArray.empty())
                         );
                 FunctionalIterator.Sorted<EdgeDirected> bufferedIterator = bufferedEdgeIterator(encoding, lookahead);
                 return bufferedIterator.merge(storageIterator).distinct();
