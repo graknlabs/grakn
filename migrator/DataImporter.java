@@ -60,6 +60,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -76,9 +77,10 @@ public class DataImporter implements Migrator {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataImporter.class);
     private static final Parser<DataProto.Item> ITEM_PARSER = DataProto.Item.parser();
-    private static final int BATCH_SIZE = 20000;
+    private static final int BATCH_SIZE = 1000;
     private final RocksSession session;
     private final Executor importExecutor;
+    private final Executor readerExecutor;
     private final int parallelism;
     private final Path filename;
 
@@ -96,8 +98,9 @@ public class DataImporter implements Migrator {
         this.remapLabels = remapLabels;
         this.version = version;
         assert com.vaticle.typedb.core.concurrent.executor.Executors.isInitialised();
-        this.parallelism = com.vaticle.typedb.core.concurrent.executor.Executors.PARALLELISATION_FACTOR;
+        this.parallelism = 1; //com.vaticle.typedb.core.concurrent.executor.Executors.PARALLELISATION_FACTOR;
         this.importExecutor = Executors.newFixedThreadPool(parallelism);
+        this.readerExecutor = Executors.newSingleThreadExecutor();
         this.idMap = new ConcurrentHashMap<>();
         this.skippedNestedRelations = new ConcurrentSet<>();
         this.status = new Status();
@@ -198,7 +201,7 @@ public class DataImporter implements Migrator {
                 } catch (IOException | InterruptedException e) {
                     throw TypeDBException.of(e);
                 }
-            });
+            }, readerExecutor);
             return queue;
         }
 
@@ -261,6 +264,7 @@ public class DataImporter implements Migrator {
                         if (count >= BATCH_SIZE) {
                             commitBatch();
                             transaction = session.transaction(Arguments.Transaction.Type.WRITE);
+                            count = 0;
                         }
                         count += importItem(item);
                     }
