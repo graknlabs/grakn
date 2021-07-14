@@ -231,13 +231,13 @@ public class MigratorClient {
                 @Override
                 public String toString() {
                     StringBuilder progressStr = new StringBuilder();
-                    progressStr.append(prog.getAttributes() == 0 ? String.format("Attribute: %dd", prog.getAttributesCurrent(), prog.getAttributes()) :
+                    progressStr.append(prog.getAttributes() == 0 ? String.format("Attribute: %d", prog.getAttributesCurrent()) :
                             String.format("Attribute: %d/%d (%.1f%%)", prog.getAttributesCurrent(), prog.getAttributes(), 100.0 * prog.getAttributesCurrent() / prog.getAttributes()));
                     progressStr.append("\n");
-                    progressStr.append(prog.getEntities() == 0 ? String.format("Entity: %dd", prog.getEntitiesCurrent(), prog.getEntities()) :
+                    progressStr.append(prog.getEntities() == 0 ? String.format("Entity: %d", prog.getEntitiesCurrent()) :
                             String.format("Entity: %d/%d (%.1f%%)", prog.getEntitiesCurrent(), prog.getEntities(), 100.0 * prog.getEntitiesCurrent() / prog.getEntities()));
                     progressStr.append("\n");
-                    progressStr.append(prog.getRelations() == 0 ? String.format("Relation: %d", prog.getRelationsCurrent(), prog.getRelations()) :
+                    progressStr.append(prog.getRelations() == 0 ? String.format("Relation: %d", prog.getRelationsCurrent()) :
                             String.format("Relation: %d/%d (%.1f%%)", prog.getRelationsCurrent(), prog.getRelations(), 100.0 * prog.getRelationsCurrent() / prog.getRelations()));
                     progressStr.append("\n");
                     long currentThings = prog.getAttributesCurrent() + prog.getEntitiesCurrent() + prog.getRelationsCurrent();

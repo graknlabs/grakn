@@ -76,7 +76,7 @@ public class DataImporter implements Migrator {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataImporter.class);
     private static final Parser<DataProto.Item> ITEM_PARSER = DataProto.Item.parser();
-    private static final int BATCH_SIZE = 10;
+    private static final int BATCH_SIZE = 1000;
     private final RocksSession session;
     private final Executor importExecutor;
     private final Executor readerExecutor;
@@ -97,7 +97,7 @@ public class DataImporter implements Migrator {
         this.remapLabels = remapLabels;
         this.version = version;
         assert com.vaticle.typedb.core.concurrent.executor.Executors.isInitialised();
-        this.parallelism = 1; //com.vaticle.typedb.core.concurrent.executor.Executors.PARALLELISATION_FACTOR;
+        this.parallelism = com.vaticle.typedb.core.concurrent.executor.Executors.PARALLELISATION_FACTOR;
         this.importExecutor = Executors.newFixedThreadPool(parallelism);
         this.readerExecutor = Executors.newSingleThreadExecutor();
         this.idMap = new ConcurrentHashMap<>();
@@ -204,8 +204,6 @@ public class DataImporter implements Migrator {
             return queue;
         }
 
-        AtomicLong txs = new AtomicLong(0);
-
         abstract class Worker {
 
             private final Map<ByteArray, String> bufferedIIDsToOriginalIds;
@@ -243,6 +241,10 @@ public class DataImporter implements Migrator {
                 }
             }
 
+            boolean thingImported(String originalId) {
+                return originalIdsToBufferedIIDs.containsKey(originalId) || idMap.containsKey(originalId);
+            }
+
             int insertOwnerships(String oldId, List<DataProto.Item.OwnedAttribute> ownedMsgs) {
                 Thing owner = getThing(oldId);
                 int ownerships = 0;
@@ -277,15 +279,11 @@ public class DataImporter implements Migrator {
             }
 
             private void commitBatch() {
-                long n;
-                if ((n = txs.incrementAndGet()) % 100 == 0) System.out.println("txn committed number: " + n);
                 transaction.commit();
                 ((RocksTransaction.Data) transaction).bufferedToPersistedThingIIDs().forEachRemaining(pair -> {
                     idMap.put(bufferedIIDsToOriginalIds.get(pair.first()), pair.second());
-                    bufferedIIDsToOriginalIds.remove(pair.first());
                 });
-                assert bufferedIIDsToOriginalIds.isEmpty();
-//                bufferedIIDsToOriginalIds.clear();
+                bufferedIIDsToOriginalIds.clear();
                 originalIdsToBufferedIIDs.clear();
             }
         }
@@ -426,9 +424,8 @@ public class DataImporter implements Migrator {
                     for (DataProto.Item.Relation.Role roleMsg : relationMsg.getRoleList()) {
                         RoleType roleType = getRoleType(relationType, roleMsg);
                         for (DataProto.Item.Relation.Role.Player playerMessage : roleMsg.getPlayerList()) {
-                            Thing player = getThing(playerMessage.getId());
-                            if (player == null) return Optional.empty();
-                            else players.add(new Pair<>(roleType, player));
+                            if (!thingImported(playerMessage.getId())) return Optional.empty();
+                            else players.add(new Pair<>(roleType, getThing(playerMessage.getId())));
                         }
                     }
                     return Optional.of(players);

@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_STATE;
+import static com.vaticle.typedb.core.common.exception.ErrorMessage.Migrator.DATABASE_NOT_FOUND;
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Migrator.FILE_NOT_WRITABLE;
 
 public class DataExporter implements Migrator {
@@ -63,6 +64,7 @@ public class DataExporter implements Migrator {
     private long totalRelationCount = 0;
 
     DataExporter(TypeDB typedb, String database, Path filename, String version) {
+        if (!typedb.databases().contains(database)) throw TypeDBException.of(DATABASE_NOT_FOUND, database);
         this.typedb = typedb;
         this.database = database;
         this.filename = filename;
@@ -77,8 +79,8 @@ public class DataExporter implements Migrator {
                                 .setAttributesCurrent(attributeCount.get())
                                 .setEntitiesCurrent(entityCount.get())
                                 .setRelationsCurrent(relationCount.get())
-                                .setAttributes(totalEntityCount)
-                                .setEntities(totalAttributeCount)
+                                .setAttributes(totalAttributeCount)
+                                .setEntities(totalEntityCount)
                                 .setRelations(totalRelationCount)
                                 .build()
                 ).build();
@@ -137,7 +139,7 @@ public class DataExporter implements Migrator {
     private DataProto.Item readEntity(Entity entity) {
         entityCount.incrementAndGet();
         DataProto.Item.Entity.Builder entityBuilder = DataProto.Item.Entity.newBuilder()
-                .setId(entity.getIID().decodeString())
+                .setId(entity.getIID().toHexString())
                 .setLabel(entity.getType().getLabel().name());
         readOwnerships(entity).forEachRemaining(a -> {
             ownershipCount.incrementAndGet();
@@ -149,7 +151,7 @@ public class DataExporter implements Migrator {
     private DataProto.Item readRelation(Relation relation) {
         relationCount.incrementAndGet();
         DataProto.Item.Relation.Builder relationBuilder = DataProto.Item.Relation.newBuilder()
-                .setId(relation.getIID().decodeString())
+                .setId(relation.getIID().toHexString())
                 .setLabel(relation.getType().getLabel().name());
         Map<? extends RoleType, ? extends List<? extends Thing>> playersByRole = relation.getPlayersByRoleType();
         for (Map.Entry<? extends RoleType, ? extends List<? extends Thing>> rolePlayers : playersByRole.entrySet()) {
@@ -159,7 +161,7 @@ public class DataExporter implements Migrator {
             for (Thing player : rolePlayers.getValue()) {
                 roleCount.incrementAndGet();
                 roleBuilder.addPlayer(DataProto.Item.Relation.Role.Player.newBuilder()
-                        .setId(player.getIID().decodeString()));
+                        .setId(player.getIID().toHexString()));
             }
             relationBuilder.addRole(roleBuilder);
         }
@@ -173,7 +175,7 @@ public class DataExporter implements Migrator {
     private DataProto.Item readAttribute(Attribute attribute) {
         attributeCount.incrementAndGet();
         DataProto.Item.Attribute.Builder attributeBuilder = DataProto.Item.Attribute.newBuilder()
-                .setId(attribute.getIID().decodeString())
+                .setId(attribute.getIID().toHexString())
                 .setLabel(attribute.getType().getLabel().name())
                 .setValue(readValue(attribute));
         readOwnerships(attribute).forEachRemaining(a -> {
@@ -203,7 +205,7 @@ public class DataExporter implements Migrator {
 
     private FunctionalIterator<DataProto.Item.OwnedAttribute.Builder> readOwnerships(Thing thing) {
         return thing.getHas().map(attribute -> DataProto.Item.OwnedAttribute.newBuilder()
-                .setId(attribute.getIID().decodeString()));
+                .setId(attribute.getIID().toHexString()));
     }
 
     private synchronized void write(OutputStream outputStream, DataProto.Item item) {
