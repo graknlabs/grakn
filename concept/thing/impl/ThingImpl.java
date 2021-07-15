@@ -180,7 +180,7 @@ public abstract class ThingImpl extends ConceptImpl implements Thing {
             return iterate(attributeTypes)
                     .flatMap(AttributeType::getSubtypes).distinct()
                     .map(t -> ((TypeImpl) t).vertex)
-                    .flatMap(type -> readableVertex().outs().edgeHas(
+                    .flatMap(type -> readableVertex().outs().edge(HAS, 
                             PrefixIID.of(type.encoding().instance()), type.iid()
                     ).to()).map(ThingVertex::asAttribute);
         } else {
@@ -217,7 +217,7 @@ public abstract class ThingImpl extends ConceptImpl implements Thing {
             return readableVertex().ins().edge(ROLEPLAYER).from().map(RelationImpl::of);
         } else {
             return iterate(roleTypes).flatMap(RoleType::getSubtypes).distinct().flatMap(
-                    rt -> readableVertex().ins().edgeRolePlayer(((RoleTypeImpl) rt).vertex.iid()).from()
+                    rt -> readableVertex().ins().edge(ROLEPLAYER, ((RoleTypeImpl) rt).vertex).from()
             ).map(RelationImpl::of);
         }
     }

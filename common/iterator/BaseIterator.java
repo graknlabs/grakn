@@ -109,7 +109,8 @@ class BaseIterator<T> extends AbstractFunctionalIterator<T> {
         }
 
         @Override
-        public <U extends Comparable<? super U>> Forwardable<U> mapSorted(Function<T, U> mappingFn, Function<U, T> reverseMappingFn) {
+        public <U extends Comparable<? super U>> Forwardable<U> mapSorted(
+                Function<T, U> mappingFn, Function<U, T> reverseMappingFn) {
             return Iterators.Sorted.mapSorted(this, mappingFn, reverseMappingFn);
         }
 

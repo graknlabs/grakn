@@ -24,7 +24,6 @@ import com.vaticle.typedb.core.common.iterator.FunctionalIterator;
 import com.vaticle.typedb.core.common.parameters.Label;
 import com.vaticle.typedb.core.graph.GraphManager;
 import com.vaticle.typedb.core.graph.adjacency.ThingAdjacency;
-import com.vaticle.typedb.core.graph.common.Encoding;
 import com.vaticle.typedb.core.graph.edge.ThingEdge;
 import com.vaticle.typedb.core.graph.edge.impl.ThingEdgeImpl;
 import com.vaticle.typedb.core.graph.iid.PrefixIID;
@@ -50,7 +49,7 @@ import java.util.Set;
 
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_STATE;
 import static com.vaticle.typedb.core.common.iterator.Iterators.iterate;
-import static java.util.stream.Collectors.toMap;
+import static com.vaticle.typedb.core.graph.common.Encoding.Edge.Thing.Optimised.ROLEPLAYER;
 
 public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
 
@@ -224,9 +223,9 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
         ThingVertex player = answer.get(playerId).asThing();
         Set<Label> roleTypes = structureEdge.asNative().asRolePlayer().types();
         assert roleTypes.size() == 1;
-        TypeVertex roleType = graphMgr.schema().getType(roleTypes.iterator().next());
+        TypeVertex rt = graphMgr.schema().getType(roleTypes.iterator().next());
         return player.ins()
-                .edgeRolePlayer(roleType.iid(), PrefixIID.of(relationType.iid().encoding().instance()), relationType.iid()).get()
+                .edge(ROLEPLAYER, rt, PrefixIID.of(relationType.iid().encoding().instance()), relationType.iid()).get()
                 .filter(directedEdge -> !scoped.containsRole(directedEdge.getEdge().optimised().get()))
                 .mapSorted(
                         directedEdge -> {
@@ -234,8 +233,8 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
                             scoped.record(edge, role);
                             return directedEdge.getEdge().from();
                         }, vertex -> {
-                            ThingEdge target = new ThingEdgeImpl.Virtual(Encoding.Edge.Thing.Optimised.ROLEPLAYER, vertex, answer.get(playerId).asThing(), roleType);
-                            return ThingAdjacency.EdgeDirected.in(target);
+                            ThingEdge target = new ThingEdgeImpl.Virtual(ROLEPLAYER, vertex, answer.get(playerId).asThing(), rt);
+                            return ThingAdjacency.DirectedEdge.in(target);
                         });
     }
 

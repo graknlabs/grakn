@@ -228,7 +228,7 @@ public abstract class ThingEdgeImpl implements ThingEdge {
         private final ThingVertex to;
         private final TypeVertex optimisedType;
 
-        public Virtual(Encoding.Edge.Thing encoding, ThingVertex from, ThingVertex to, TypeVertex optimisedType) {
+        public Virtual(Encoding.Edge.Thing encoding, ThingVertex from, ThingVertex to, @Nullable TypeVertex optimisedType) {
             super(from.graph(), encoding, false);
             this.optimisedType = optimisedType;
             assert !encoding.isOptimisation() || optimisedType != null;
