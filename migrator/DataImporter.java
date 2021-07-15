@@ -38,6 +38,8 @@ import com.vaticle.typedb.core.migrator.proto.MigratorProto;
 import com.vaticle.typedb.core.rocks.RocksSession;
 import com.vaticle.typedb.core.rocks.RocksTransaction;
 import com.vaticle.typedb.core.rocks.RocksTypeDB;
+import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,6 +107,27 @@ public class DataImporter implements Migrator {
         this.skippedNestedRelations = new ConcurrentSet<>();
         this.status = new Status();
     }
+
+    private static class IDMapping {
+
+        private final RocksDB storage;
+
+        IDMapping(String database) {
+            try {
+                Path directory = Files.createTempDirectory("_typedb_import_files");
+                storage = RocksDB.open(directory.resolve("_" + database).toString());
+            } catch (IOException | RocksDBException e) {
+                throw TypeDBException.of(e);
+            }
+        }
+
+        public void close() {
+            storage.close();
+            // TODO delete tmp directory
+        }
+
+    }
+
 
     @Override
     public MigratorProto.Job.Progress getProgress() {
