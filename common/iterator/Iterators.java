@@ -154,10 +154,16 @@ public class Iterators {
             return new MappedIterator.Sorted.Forwardable<>(iterator, mappingFn, reverseMappingFn);
         }
 
-        public static <U extends Comparable<? super U>> FunctionalIterator.Sorted.Forwardable<U> merge(
-                FunctionalIterator.Sorted.Forwardable<U> iterator, FunctionalIterator.Sorted.Forwardable<U>... iterators) {
-            List<FunctionalIterator.Sorted.Forwardable<U>> iters = list(list(iterators), iterator);
+        @SafeVarargs
+        public static <T extends Comparable<? super T>> FunctionalIterator.Sorted.Forwardable<T> merge(
+                FunctionalIterator.Sorted.Forwardable<T> iterator, FunctionalIterator.Sorted.Forwardable<T>... iterators) {
+            List<FunctionalIterator.Sorted.Forwardable<T>> iters = list(list(iterators), iterator);
             return new MergeMappedIterator.Forwardable<>(iterate(iters), e -> e);
+        }
+
+        public static <T extends Comparable<? super T>> FunctionalIterator.Sorted.Forwardable<T> onFinalise(
+                FunctionalIterator.Sorted.Forwardable<T> iterator, Runnable finalise) {
+            return new FinaliseHandledIterator.Sorted.Forwardable<>(iterator, finalise);
         }
     }
 }

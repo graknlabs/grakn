@@ -169,6 +169,11 @@ public final class RocksIterator extends AbstractFunctionalIterator.Sorted<KeyVa
     }
 
     @Override
+    public FunctionalIterator.Sorted.Forwardable<KeyValue<ByteArray, ByteArray>> onFinalise(Runnable finalise) {
+        return Iterators.Sorted.onFinalise(this, finalise);
+    }
+
+    @Override
     public boolean isForwadable() {
         return true;
     }

@@ -72,7 +72,7 @@ public interface ThingAdjacency {
 
     SortedIteratorBuilder edgeRelating(IID... lookAhead);
 
-    IteratorBuilder edgeRolePlayer();
+//    IteratorBuilder edgeRolePlayer();
 
     SortedIteratorBuilder edgeRolePlayer(IID roleType, IID... lookAhead);
 
@@ -112,7 +112,7 @@ public interface ThingAdjacency {
 
         FunctionalIterator<ThingVertex> to();
 
-        FunctionalIterator.Sorted<EdgeDirected> get();
+        FunctionalIterator.Sorted.Forwardable<EdgeDirected> get();
     }
 
     interface Write extends ThingAdjacency {

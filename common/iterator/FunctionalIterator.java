@@ -39,7 +39,7 @@ public interface FunctionalIterator<T> extends Iterator<T> {
 
     <U> FunctionalIterator<U> flatMap(Function<T, FunctionalIterator<U>> mappingFn);
 
-    <U extends Comparable<U>> Sorted<U> mergeMap(Function<T, Sorted<U>> mappingFn);
+    <U extends Comparable<U>> Sorted.Forwardable<U> mergeMap(Function<T, Sorted.Forwardable<U>> mappingFn);
 
     FunctionalIterator<T> filter(Predicate<T> predicate);
 

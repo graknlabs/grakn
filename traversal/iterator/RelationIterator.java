@@ -60,7 +60,7 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
     private final GraphManager graphMgr;
 
     private final Map<Retrievable, Vertex<?, ?>> answer;
-    private final Map<Integer, FunctionalIterator.Sorted<ThingVertex>> iterators;
+    private final Map<Integer, FunctionalIterator.Sorted.Forwardable<ThingVertex>> iterators;
     private final Scoped scoped;
     private Retrievable relationId;
     private TypeVertex relationType;
@@ -188,7 +188,7 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
     }
 
     private boolean verify(int i) {
-        FunctionalIterator.Sorted<ThingVertex> relationIterator = getIterator(i);
+        FunctionalIterator.Sorted.Forwardable<ThingVertex> relationIterator = getIterator(i);
         if (!relationIterator.hasNext()) {
             state = State.COMPLETED;
             return false;
@@ -213,12 +213,12 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
         state = State.PROPOSED;
     }
 
-    private FunctionalIterator.Sorted<ThingVertex> getIterator(int edge) {
+    private FunctionalIterator.Sorted.Forwardable<ThingVertex> getIterator(int edge) {
         assert edges.get(edge).to().id().isRetrievable();
         return iterators.computeIfAbsent(edge, this::createIterator);
     }
 
-    private FunctionalIterator.Sorted<ThingVertex> createIterator(int edge) {
+    private FunctionalIterator.Sorted.Forwardable<ThingVertex> createIterator(int edge) {
         StructureEdge<?, ?> structureEdge = edges.get(edge);
         Retrievable playerId = structureEdge.to().id().asVariable().asRetrievable();
         ThingVertex player = answer.get(playerId).asThing();
