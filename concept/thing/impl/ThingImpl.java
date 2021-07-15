@@ -53,9 +53,9 @@ import static com.vaticle.typedb.core.common.exception.ErrorMessage.ThingWrite.T
 import static com.vaticle.typedb.core.common.iterator.Iterators.iterate;
 import static com.vaticle.typedb.core.common.iterator.Iterators.link;
 import static com.vaticle.typedb.core.common.iterator.Iterators.single;
-import static com.vaticle.typedb.core.graph.common.Encoding.Edge.Thing.HAS;
-import static com.vaticle.typedb.core.graph.common.Encoding.Edge.Thing.PLAYING;
-import static com.vaticle.typedb.core.graph.common.Encoding.Edge.Thing.ROLEPLAYER;
+import static com.vaticle.typedb.core.graph.common.Encoding.Edge.Thing.Data.HAS;
+import static com.vaticle.typedb.core.graph.common.Encoding.Edge.Thing.Data.PLAYING;
+import static com.vaticle.typedb.core.graph.common.Encoding.Edge.Thing.Optimised.ROLEPLAYER;
 
 public abstract class ThingImpl extends ConceptImpl implements Thing {
 

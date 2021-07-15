@@ -56,10 +56,10 @@ public interface ThingAdjacency {
      * @return an {@code IteratorBuilder} to retrieve vertices of a set of edges.
      */
     default SortedIteratorBuilder edge(Encoding.Edge.Thing encoding, IID... lookAhead) {
-        if (encoding == Encoding.Edge.Thing.HAS) return edgeHas(lookAhead);
-        else if (encoding == Encoding.Edge.Thing.PLAYING) return edgeHas(lookAhead);
-        else if (encoding == Encoding.Edge.Thing.RELATING) return edgeHas(lookAhead);
-        else if (encoding == Encoding.Edge.Thing.ROLEPLAYER) {
+        if (encoding == Encoding.Edge.Thing.Data.HAS) return edgeHas(lookAhead);
+        else if (encoding == Encoding.Edge.Thing.Data.PLAYING) return edgeHas(lookAhead);
+        else if (encoding == Encoding.Edge.Thing.Data.RELATING) return edgeHas(lookAhead);
+        else if (encoding == Encoding.Edge.Thing.Optimised.ROLEPLAYER) {
             if (lookAhead.length > 0)
                 return edgeRolePlayer(lookAhead[0], Arrays.copyOfRange(lookAhead, 1, lookAhead.length));
             else throw TypeDBException.of(ILLEGAL_OPERATION);

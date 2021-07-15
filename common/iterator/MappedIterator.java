@@ -144,7 +144,7 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
             U mappedNext() {
                 T value = source.next();
                 U next = mappingFn.apply(value);
-                assert reverseMappingFn.apply(next).equals(value);
+//                assert reverseMappingFn.apply(next).equals(value);
                 return next;
             }
 
