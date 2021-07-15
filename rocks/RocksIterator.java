@@ -22,12 +22,17 @@ import com.vaticle.typedb.core.common.collection.ByteArray;
 import com.vaticle.typedb.core.common.collection.KeyValue;
 import com.vaticle.typedb.core.common.exception.TypeDBException;
 import com.vaticle.typedb.core.common.iterator.AbstractFunctionalIterator;
+import com.vaticle.typedb.core.common.iterator.FunctionalIterator;
+import com.vaticle.typedb.core.common.iterator.Iterators;
 
 import java.util.NoSuchElementException;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.RESOURCE_CLOSED;
 
-public final class RocksIterator extends AbstractFunctionalIterator.Sorted<KeyValue<ByteArray, ByteArray>> implements AutoCloseable {
+public final class RocksIterator extends AbstractFunctionalIterator.Sorted<KeyValue<ByteArray, ByteArray>>
+        implements FunctionalIterator.Sorted.Forwardable<KeyValue<ByteArray, ByteArray>>, AutoCloseable {
 
     private final ByteArray prefix;
     private final RocksStorage storage;
@@ -138,5 +143,38 @@ public final class RocksIterator extends AbstractFunctionalIterator.Sorted<KeyVa
             isClosed = true;
             storage.remove(this);
         }
+    }
+
+    @SafeVarargs
+    @Override
+    public final FunctionalIterator.Sorted.Forwardable<KeyValue<ByteArray, ByteArray>> merge(FunctionalIterator.Sorted.Forwardable<KeyValue<ByteArray, ByteArray>>... iterators) {
+        return Iterators.Sorted.merge(this, iterators);
+    }
+
+    @Override
+    public <V extends Comparable<? super V>> FunctionalIterator.Sorted.Forwardable<V> mapSorted(
+            Function<KeyValue<ByteArray, ByteArray>, V> mappingFn,
+            Function<V, KeyValue<ByteArray, ByteArray>> reverseMappingFn) {
+        return Iterators.Sorted.mapSorted(this, mappingFn, reverseMappingFn);
+    }
+
+    @Override
+    public FunctionalIterator.Sorted.Forwardable<KeyValue<ByteArray, ByteArray>> distinct() {
+        return Iterators.Sorted.distinct(this);
+    }
+
+    @Override
+    public FunctionalIterator.Sorted.Forwardable<KeyValue<ByteArray, ByteArray>> filter(Predicate<KeyValue<ByteArray, ByteArray>> predicate) {
+        return Iterators.Sorted.filter(this, predicate);
+    }
+
+    @Override
+    public boolean isForwadable() {
+        return true;
+    }
+
+    @Override
+    public FunctionalIterator.Sorted.Forwardable<KeyValue<ByteArray, ByteArray>> asForwardable() {
+        return this;
     }
 }

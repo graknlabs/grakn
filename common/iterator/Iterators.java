@@ -44,10 +44,6 @@ public class Iterators {
         return iterate(set());
     }
 
-    public static <T extends Comparable<T>> FunctionalIterator.Sorted<T> emptySorted() {
-        return iterateSorted(new ConcurrentSkipListSet<T>());
-    }
-
     public static <T> FunctionalIterator<T> single(T item) {
         return iterate(set(item));
     }
@@ -63,10 +59,6 @@ public class Iterators {
 
     public static <T> FunctionalIterator<T> iterate(Iterator<T> iterator) {
         return new BaseIterator<>(Either.second(iterator));
-    }
-
-    public static <T extends Comparable<? super T>> FunctionalIterator.Sorted<T> iterateSorted(NavigableSet<T> set) {
-        return new BaseIterator.Sorted<>(set);
     }
 
     public static <T> FunctionalIterator<T> link(Iterator<? extends T> iter1, Iterator<? extends T> iter2) {
@@ -111,6 +103,7 @@ public class Iterators {
         return StreamSupport.stream(spliteratorUnknownSize(iterator, ORDERED | IMMUTABLE), false);
     }
 
+
     public static int compareSize(Iterator<?> iterator, int size) {
         long count = 0L;
         while (iterator.hasNext()) {
@@ -119,5 +112,52 @@ public class Iterators {
             if (count > size) return 1;
         }
         return count == size ? 0 : -1;
+    }
+
+    public static class Sorted {
+
+        public static <T extends Comparable<T>> FunctionalIterator.Sorted.Forwardable<T> emptySorted() {
+            return iterateSorted(new ConcurrentSkipListSet<T>());
+        }
+
+        public static <T extends Comparable<? super T>> FunctionalIterator.Sorted.Forwardable<T> iterateSorted(NavigableSet<T> set) {
+            return new BaseIterator.Sorted<>(set);
+        }
+
+        public static <T extends Comparable<? super T>> FunctionalIterator.Sorted<T> distinct(
+                FunctionalIterator.Sorted<T> iterator) {
+            return new DistinctIterator.Sorted<>(iterator);
+        }
+
+        public static <T extends Comparable<? super T>> FunctionalIterator.Sorted.Forwardable<T> distinct(
+                FunctionalIterator.Sorted.Forwardable<T> iterator) {
+            return new DistinctIterator.Sorted.Forwardable<>(iterator);
+        }
+
+        public static <T extends Comparable<? super T>> FunctionalIterator.Sorted<T> filter(
+                FunctionalIterator.Sorted<T> iterator, Predicate<T> predicate) {
+            return new FilteredIterator.Sorted<>(iterator, predicate);
+        }
+
+        public static <T extends Comparable<? super T>> FunctionalIterator.Sorted.Forwardable<T> filter(
+                FunctionalIterator.Sorted.Forwardable<T> iterator, Predicate<T> predicate) {
+            return new FilteredIterator.Sorted.Forwardable<>(iterator, predicate);
+        }
+
+        public static <T extends Comparable<? super T>, U extends Comparable<? super U>> FunctionalIterator.Sorted<U> mapSorted(
+                FunctionalIterator.Sorted<T> iterator, Function<T, U> mappingFn) {
+            return new MappedIterator.Sorted<>(iterator, mappingFn);
+        }
+
+        public static <T extends Comparable<? super T>, U extends Comparable<? super U>> FunctionalIterator.Sorted.Forwardable<U> mapSorted(
+                FunctionalIterator.Sorted.Forwardable<T> iterator, Function<T, U> mappingFn, Function<U, T> reverseMappingFn) {
+            return new MappedIterator.Sorted.Forwardable<>(iterator, mappingFn, reverseMappingFn);
+        }
+
+        public static <U extends Comparable<? super U>> FunctionalIterator.Sorted.Forwardable<U> merge(
+                FunctionalIterator.Sorted.Forwardable<U> iterator, FunctionalIterator.Sorted.Forwardable<U>... iterators) {
+            List<FunctionalIterator.Sorted.Forwardable<U>> iters = list(list(iterators), iterator);
+            return new MergeMappedIterator.Forwardable<>(iterate(iters), e -> e);
+        }
     }
 }

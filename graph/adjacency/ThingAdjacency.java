@@ -72,9 +72,9 @@ public interface ThingAdjacency {
 
     SortedIteratorBuilder edgeRelating(IID... lookAhead);
 
-    FunctionalIterator<EdgeDirected> edgeRolePlayer();
+    IteratorBuilder edgeRolePlayer();
 
-    FunctionalIterator.Sorted<EdgeDirected> edgeRolePlayer(IID roleType, IID... lookAhead);
+    SortedIteratorBuilder edgeRolePlayer(IID roleType, IID... lookAhead);
 
     /**
      * Returns an edge of type {@code encoding} that connects to an {@code adjacent}

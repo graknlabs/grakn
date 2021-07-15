@@ -21,10 +21,15 @@ package com.vaticle.typedb.core.common.iterator;
 import com.vaticle.typedb.core.common.exception.TypeDBException;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
+import static com.vaticle.typedb.common.collection.Collections.list;
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_ARGUMENT;
+import static com.vaticle.typedb.core.common.iterator.Iterators.iterate;
 
 // TODO: verify (and potentially fix) this class is able to handle null objects
 class DistinctIterator<T> extends AbstractFunctionalIterator<T> {
@@ -66,12 +71,13 @@ class DistinctIterator<T> extends AbstractFunctionalIterator<T> {
         iterator.recycle();
     }
 
-    static class Sorted<T extends Comparable<? super T>> extends AbstractFunctionalIterator.Sorted<T> {
+    static class Sorted<T extends Comparable<? super T>, ITER extends FunctionalIterator.Sorted<T>>
+            extends AbstractFunctionalIterator.Sorted<T> {
 
-        private final FunctionalIterator.Sorted<T> source;
+        final ITER source;
         T last;
 
-        Sorted(AbstractFunctionalIterator.Sorted<T> source) {
+        Sorted(ITER source) {
             this.source = source;
             last = null;
         }
@@ -99,14 +105,54 @@ class DistinctIterator<T> extends AbstractFunctionalIterator<T> {
         }
 
         @Override
-        public void forward(T target) {
-            if (last != null && target.compareTo(last) < 0) throw TypeDBException.of(ILLEGAL_ARGUMENT);
-            this.source.forward(target);
-        }
-
-        @Override
         public void recycle() {
             source.recycle();
+        }
+
+        static class Forwardable<T extends Comparable<? super T>>
+                extends DistinctIterator.Sorted<T, FunctionalIterator.Sorted.Forwardable<T>>
+                implements FunctionalIterator.Sorted.Forwardable<T> {
+
+            Forwardable(FunctionalIterator.Sorted.Forwardable<T> source) {
+                super(source);
+            }
+
+            @Override
+            public void forward(T target) {
+                if (last != null && target.compareTo(last) < 0) throw TypeDBException.of(ILLEGAL_ARGUMENT);
+                source.forward(target);
+            }
+
+            @SafeVarargs
+            @Override
+            public final FunctionalIterator.Sorted.Forwardable<T> merge(FunctionalIterator.Sorted.Forwardable<T>... iterators) {
+                return Iterators.Sorted.merge(this, iterators);
+            }
+
+            @Override
+            public <U extends Comparable<? super U>> FunctionalIterator.Sorted.Forwardable<U> mapSorted(Function<T, U> mappingFn, Function<U, T> reverseMappingFn) {
+                return Iterators.Sorted.mapSorted(this, mappingFn, reverseMappingFn);
+            }
+
+            @Override
+            public FunctionalIterator.Sorted.Forwardable<T> distinct() {
+                return Iterators.Sorted.distinct(this);
+            }
+
+            @Override
+            public FunctionalIterator.Sorted.Forwardable<T> filter(Predicate<T> predicate) {
+                return Iterators.Sorted.filter(this, predicate);
+            }
+
+            @Override
+            public boolean isForwadable() {
+                return true;
+            }
+
+            @Override
+            public FunctionalIterator.Sorted.Forwardable<T> asForwardable() {
+                return this;
+            }
         }
     }
 }

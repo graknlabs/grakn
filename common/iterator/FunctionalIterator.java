@@ -92,8 +92,6 @@ public interface FunctionalIterator<T> extends Iterator<T> {
     // TODO create another seekable subtype
     interface Sorted<T extends Comparable<? super T>> extends FunctionalIterator<T> {
 
-        void forward(T target);
-
         T peek();
 
         @SuppressWarnings("unchecked")
@@ -103,6 +101,28 @@ public interface FunctionalIterator<T> extends Iterator<T> {
 
         Sorted<T> filter(Predicate<T> predicate);
 
-        <U extends Comparable<? super U>> Sorted<U> mapSorted(Function<T, U> mappingFn, Function<U, T> reverseMappingFn);
+        <U extends Comparable<? super U>> Sorted<U> mapSorted(Function<T, U> mappingFn);
+
+        boolean isForwadable();
+
+        Forwardable<T> asForwardable();
+
+        interface Forwardable<T extends Comparable<? super T>> extends Sorted<T> {
+
+            void forward(T target);
+
+            @SuppressWarnings("unchecked")
+            Forwardable<T> merge(Forwardable<T>... iterators);
+
+            @Override
+            Forwardable<T> distinct();
+
+            @Override
+            Forwardable<T> filter(Predicate<T> predicate);
+
+            <U extends Comparable<? super U>> Forwardable<U> mapSorted(Function<T, U> mappingFn, Function<U, T> reverseMappingFn);
+
+        }
+
     }
 }

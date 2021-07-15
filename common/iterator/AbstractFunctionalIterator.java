@@ -34,6 +34,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static com.vaticle.typedb.common.collection.Collections.list;
+import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_CAST;
 import static com.vaticle.typedb.core.common.iterator.Iterators.iterate;
 import static java.util.Spliterator.IMMUTABLE;
 import static java.util.Spliterator.ORDERED;
@@ -246,23 +247,75 @@ public abstract class AbstractFunctionalIterator<T> implements FunctionalIterato
 
         @Override
         public <U extends Comparable<? super U>> FunctionalIterator.Sorted<U> mapSorted(
-                Function<T, U> mappingFn, Function<U, T> reverseMappingFn) {
-            return new MappedIterator.Sorted<>(this, mappingFn, reverseMappingFn);
+                Function<T, U> mappingFn) {
+            return new MappedIterator.Sorted<>(this, mappingFn);
         }
 
         @Override
         public FunctionalIterator.Sorted<T> distinct() {
-            return new DistinctIterator.Sorted<>(this);
+            return Iterators.Sorted.distinct(this);
         }
 
         @Override
         public FunctionalIterator.Sorted<T> filter(Predicate<T> predicate) {
-            return new FilteredIterator.Sorted<>(this, predicate);
+            return Iterators.Sorted.filter(this, predicate);
         }
 
         @Override
         public FunctionalIterator.Sorted<T> onFinalise(Runnable function) {
             return new FinaliseHandledIterator.Sorted<>(this, function);
         }
+
+        @Override
+        public boolean isForwadable() {
+            return false;
+        }
+
+        @Override
+        public FunctionalIterator.Sorted.Forwardable<T> asForwardable() {
+            throw TypeDBException.of(ILLEGAL_CAST, getClass(), Forwardable.class);
+        }
+
+//        public static abstract class Forwardable<T extends Comparable<? super T>>
+//                extends AbstractFunctionalIterator.Sorted<T> implements FunctionalIterator.Sorted.Forwardable<T> {
+//
+//            @SafeVarargs
+//            @Override
+//            public final FunctionalIterator.Sorted.Forwardable<T> merge(FunctionalIterator.Sorted.Forwardable<T>... iterators) {
+//                List<FunctionalIterator.Sorted.Forwardable<T>> iters = list(list(iterators), this);
+//                return new MergeMappedIterator.Forwardable<>(iterate(iters), e -> e);
+//            }
+//
+//            @Override
+//            public <U extends Comparable<? super U>> FunctionalIterator.Sorted.Forwardable<U> mapSorted(
+//                    Function<T, U> mappingFn, Function<U, T> reverseMappingFn) {
+//                return new MappedIterator.Sorted.Forwardable<>(this, mappingFn, reverseMappingFn);
+//            }
+//
+//            @Override
+//            public FunctionalIterator.Sorted.Forwardable<T> distinct() {
+//                return new DistinctIterator.Sorted.Forwardable<>(this);
+//            }
+//
+//            @Override
+//            public FunctionalIterator.Sorted.Forwardable<T> filter(Predicate<T> predicate) {
+//                return new FilteredIterator.Sorted.Forwardable<>(this, predicate);
+//            }
+//
+//            @Override
+//            public FunctionalIterator.Sorted<T> onFinalise(Runnable function) {
+//                return new FinaliseHandledIterator.Sorted.Forwardable<>(this, function);
+//            }
+//
+//            @Override
+//            public boolean isForwadable() {
+//                return true;
+//            }
+//
+//            @Override
+//            public FunctionalIterator.Sorted.Forwardable<T> asForwardable() {
+//                return this;
+//            }
+//        }
     }
 }

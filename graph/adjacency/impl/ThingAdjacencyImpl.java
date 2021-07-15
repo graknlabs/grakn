@@ -42,9 +42,9 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.Predicate;
 
 import static com.vaticle.typedb.core.common.collection.ByteArray.join;
-import static com.vaticle.typedb.core.common.iterator.Iterators.emptySorted;
+import static com.vaticle.typedb.core.common.iterator.Iterators.Sorted.emptySorted;
 import static com.vaticle.typedb.core.common.iterator.Iterators.iterate;
-import static com.vaticle.typedb.core.common.iterator.Iterators.iterateSorted;
+import static com.vaticle.typedb.core.common.iterator.Iterators.Sorted.iterateSorted;
 import static com.vaticle.typedb.core.common.iterator.Iterators.link;
 import static java.util.Arrays.copyOfRange;
 
@@ -101,12 +101,12 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
         @Override
         public FunctionalIterator<ThingVertex> from() {
             // TODO one of these directions should use `distinct()`
-            return sortableEdges.mapSorted(sortable -> sortable.getEdge().from());
+            return sortableEdges.map(sortable -> sortable.getEdge().from());
         }
 
         @Override
         public FunctionalIterator<ThingVertex> to() {
-            return sortableEdges.map(sortable -> sortable.getEdge().to(), vertex -> );
+            return sortableEdges.map(sortable -> sortable.getEdge().to());
         }
 
         @Override
