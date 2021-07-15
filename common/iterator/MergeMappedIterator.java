@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -37,18 +36,16 @@ class MergeMappedIterator<T, U extends Comparable<? super U>, ITER extends Funct
         extends AbstractFunctionalIterator.Sorted<U> {
 
     private final Function<T, ITER> mappingFn;
-    final FunctionalIterator<T> source;
+    final FunctionalIterator<T> iterator;
     final PriorityQueue<ComparableSortedIterator> queue;
     final List<ITER> notInQueue;
     State state;
     U last;
 
-    enum State {
-        INIT, NOT_READY, FETCHED, COMPLETED;
-    }
+    enum State {INIT, NOT_READY, FETCHED, COMPLETED}
 
-    MergeMappedIterator(FunctionalIterator<T> source, Function<T, ITER> mappingFn) {
-        this.source = source;
+    MergeMappedIterator(FunctionalIterator<T> iterator, Function<T, ITER> mappingFn) {
+        this.iterator = iterator;
         this.mappingFn = mappingFn;
         this.queue = new PriorityQueue<>();
         this.state = State.INIT;
@@ -60,7 +57,7 @@ class MergeMappedIterator<T, U extends Comparable<? super U>, ITER extends Funct
 
         private final ITER iter;
 
-        private ComparableSortedIterator(ITER iter){
+        private ComparableSortedIterator(ITER iter) {
             assert iter.hasNext();
             this.iter = iter;
         }
@@ -71,6 +68,7 @@ class MergeMappedIterator<T, U extends Comparable<? super U>, ITER extends Funct
         }
 
     }
+
     @Override
     public boolean hasNext() {
         switch (state) {
@@ -101,11 +99,11 @@ class MergeMappedIterator<T, U extends Comparable<? super U>, ITER extends Funct
     }
 
     private void initialise() {
-        source.forEachRemaining(value -> {
+        iterator.forEachRemaining(value -> {
             ITER sortedIterator = mappingFn.apply(value);
             if (sortedIterator.hasNext()) queue.add(new ComparableSortedIterator(sortedIterator));
         });
-        source.recycle();
+        iterator.recycle();
         if (queue.isEmpty()) state = State.COMPLETED;
         else state = State.FETCHED;
     }
@@ -136,7 +134,7 @@ class MergeMappedIterator<T, U extends Comparable<? super U>, ITER extends Funct
         queue.clear();
         notInQueue.forEach(FunctionalIterator::recycle);
         notInQueue.clear();
-        source.recycle();
+        iterator.recycle();
     }
 
     static class Forwardable<T, U extends Comparable<? super U>>
@@ -167,7 +165,8 @@ class MergeMappedIterator<T, U extends Comparable<? super U>, ITER extends Funct
         }
 
         @Override
-        public <V extends Comparable<? super V>> FunctionalIterator.Sorted.Forwardable<V> mapSorted(Function<U, V> mappingFn, Function<V, U> reverseMappingFn) {
+        public <V extends Comparable<? super V>> FunctionalIterator.Sorted.Forwardable<V> mapSorted(
+                Function<U, V> mappingFn, Function<V, U> reverseMappingFn) {
             return Iterators.Sorted.mapSorted(this, mappingFn, reverseMappingFn);
         }
 
@@ -181,14 +180,5 @@ class MergeMappedIterator<T, U extends Comparable<? super U>, ITER extends Funct
             return Iterators.Sorted.filter(this, predicate);
         }
 
-        @Override
-        public boolean isForwadable() {
-            return true;
-        }
-
-        @Override
-        public FunctionalIterator.Sorted.Forwardable<U> asForwardable() {
-            return this;
-        }
     }
 }

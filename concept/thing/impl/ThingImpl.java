@@ -124,7 +124,7 @@ public abstract class ThingImpl extends ConceptImpl implements Thing {
             } else if (attribute.getOwners(getType()).first().isPresent()) {
                 throw exception(TypeDBException.of(THING_KEY_TAKEN, attribute.getType().getLabel(), getType().getLabel()));
             }
-            vertex.graph().exclusiveOwnership(((TypeImpl) ((ThingTypeImpl) this.getType())).vertex, attrVertex);
+            vertex.graph().exclusiveOwnership(((TypeImpl) this.getType()).vertex, attrVertex);
         }
         writableVertex().outs().put(HAS, attrVertex, isInferred);
     }
@@ -180,9 +180,8 @@ public abstract class ThingImpl extends ConceptImpl implements Thing {
             return iterate(attributeTypes)
                     .flatMap(AttributeType::getSubtypes).distinct()
                     .map(t -> ((TypeImpl) t).vertex)
-                    .flatMap(type -> readableVertex().outs().edge(HAS, 
-                            PrefixIID.of(type.encoding().instance()), type.iid()
-                    ).to()).map(ThingVertex::asAttribute);
+                    .flatMap(type -> readableVertex().outs().edge(HAS, PrefixIID.of(type.encoding().instance()), type.iid()).to())
+                    .map(ThingVertex::asAttribute);
         } else {
             return readableVertex().outs().edge(HAS).to().map(ThingVertex::asAttribute);
         }
@@ -241,14 +240,19 @@ public abstract class ThingImpl extends ConceptImpl implements Thing {
     }
 
     void validateIsNotDeleted() {
-        if (writableVertex().isDeleted()) throw exception(TypeDBException.of(THING_HAS_BEEN_DELETED, getIIDForPrinting()));
+        if (writableVertex().isDeleted())
+            throw exception(TypeDBException.of(THING_HAS_BEEN_DELETED, getIIDForPrinting()));
     }
 
     @Override
-    public ThingImpl asThing() { return this; }
+    public ThingImpl asThing() {
+        return this;
+    }
 
     @Override
-    public boolean isThing() { return true; }
+    public boolean isThing() {
+        return true;
+    }
 
     private String printTypeSet(Set<? extends Type> types) {
         Type[] array = types.toArray(new Type[0]);

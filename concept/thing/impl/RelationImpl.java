@@ -121,7 +121,7 @@ public class RelationImpl extends ThingImpl implements Relation {
     }
 
     private FunctionalIterator<ThingImpl> getPlayers(FunctionalIterator<TypeVertex> roleTypeVertices) {
-        return roleTypeVertices.flatMap(v -> readableVertex().outs().edge(RELATING, (v.iid())).to()).map(ThingImpl::of);
+        return roleTypeVertices.flatMap(v -> readableVertex().outs().edge(ROLEPLAYER, v).to()).map(ThingImpl::of);
     }
 
     @Override

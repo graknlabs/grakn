@@ -145,7 +145,7 @@ public interface ThingAdjacency {
 
     }
 
-    DirectedEdge asSortable(ThingEdge edge);
+    DirectedEdge asDirected(ThingEdge edge);
 
     abstract class DirectedEdge implements Comparable<DirectedEdge> {
 
@@ -155,13 +155,13 @@ public interface ThingAdjacency {
             this.edge = edge;
         }
 
-        public abstract EdgeIID.Thing getKey();
+        public abstract EdgeIID.Thing iid();
 
         public static DirectedEdge in(ThingEdge edge) {
             EdgeIID.Thing inIID = edge.inIID();
             return new DirectedEdge(edge) {
                 @Override
-                public EdgeIID.Thing getKey() {
+                public EdgeIID.Thing iid() {
                     return inIID;
                 }
             };
@@ -171,7 +171,7 @@ public interface ThingAdjacency {
             EdgeIID.Thing outIID = edge.outIID();
             return new DirectedEdge(edge) {
                 @Override
-                public EdgeIID.Thing getKey() {
+                public EdgeIID.Thing iid() {
                     return outIID;
                 }
             };
@@ -183,7 +183,7 @@ public interface ThingAdjacency {
 
         @Override
         public int compareTo(DirectedEdge other) {
-            return getKey().compareTo(other.getKey());
+            return iid().compareTo(other.iid());
         }
 
         @Override

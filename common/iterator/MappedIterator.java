@@ -20,9 +20,7 @@ package com.vaticle.typedb.core.common.iterator;
 
 import com.vaticle.typedb.core.common.exception.TypeDBException;
 
-import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -60,7 +58,7 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
             T extends Comparable<? super T>, U extends Comparable<? super U>, ITER extends FunctionalIterator.Sorted<T>
             > extends AbstractFunctionalIterator.Sorted<U> {
 
-        final ITER source;
+        final ITER iterator;
         final Function<T, U> mappingFn;
         State state;
         U next;
@@ -68,8 +66,8 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
 
         enum State {EMPTY, FETCHED, COMPLETED}
 
-        Sorted(ITER source, Function<T, U> mappingFn) {
-            this.source = source;
+        Sorted(ITER iterator, Function<T, U> mappingFn) {
+            this.iterator = iterator;
             this.mappingFn = mappingFn;
             this.state = State.EMPTY;
             last = null;
@@ -96,7 +94,7 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
         }
 
         private boolean fetchAndCheck() {
-            if (source.hasNext()) {
+            if (iterator.hasNext()) {
                 this.next = mappedNext();
                 state = State.FETCHED;
             } else {
@@ -106,7 +104,7 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
         }
 
         U mappedNext() {
-            T value = source.next();
+            T value = iterator.next();
             return mappingFn.apply(value);
         }
 
@@ -121,7 +119,7 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
 
         @Override
         public void recycle() {
-            source.recycle();
+            iterator.recycle();
         }
 
         static class Forwardable<T extends Comparable<? super T>, U extends Comparable<? super U>>
@@ -133,7 +131,7 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
             /**
              * @param source           - iterator to create mapped iterators from
              * @param mappingFn        - The forward mapping function must return a new iterator that is sorted with respect to U's comparator.
-             * @param reverseMappingFn - The reverse mapping function must be the inverse of the forward mapping function.
+             * @param reverseMappingFn - The reverse mapping function must be the able to invert the forward mapping function
              */
             Forwardable(FunctionalIterator.Sorted.Forwardable<T> source, Function<T, U> mappingFn, Function<U, T> reverseMappingFn) {
                 super(source, mappingFn);
@@ -142,7 +140,7 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
 
             @Override
             U mappedNext() {
-                T value = source.next();
+                T value = iterator.next();
                 U next = mappingFn.apply(value);
 //                assert reverseMappingFn.apply(next).equals(value);
                 return next;
@@ -152,7 +150,7 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
             public void forward(U target) {
                 if (last != null && target.compareTo(last) < 0) throw TypeDBException.of(ILLEGAL_ARGUMENT);
                 T reverseMapped = reverseMappingFn.apply(target);
-                source.forward(reverseMapped);
+                iterator.forward(reverseMapped);
                 state = State.EMPTY;
             }
 
@@ -163,7 +161,8 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
             }
 
             @Override
-            public <V extends Comparable<? super V>> FunctionalIterator.Sorted.Forwardable<V> mapSorted(Function<U, V> mappingFn, Function<V, U> reverseMappingFn) {
+            public <V extends Comparable<? super V>> FunctionalIterator.Sorted.Forwardable<V> mapSorted(
+                    Function<U, V> mappingFn, Function<V, U> reverseMappingFn) {
                 return Iterators.Sorted.mapSorted(this, mappingFn, reverseMappingFn);
             }
 
@@ -177,15 +176,6 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
                 return Iterators.Sorted.filter(this, predicate);
             }
 
-            @Override
-            public boolean isForwadable() {
-                return true;
-            }
-
-            @Override
-            public FunctionalIterator.Sorted.Forwardable<U> asForwardable() {
-                return this;
-            }
         }
     }
 }

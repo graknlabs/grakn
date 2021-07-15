@@ -65,7 +65,7 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
     }
 
     @Override
-    public DirectedEdge asSortable(ThingEdge edge) {
+    public DirectedEdge asDirected(ThingEdge edge) {
         return direction.isIn() ? DirectedEdge.in(edge) : DirectedEdge.out(edge);
     }
 
@@ -112,16 +112,15 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
         public FunctionalIterator.Sorted<ThingVertex> from() {
             return direction.isOut() ?
                     sortableEdges.mapSorted(sortable -> sortable.getEdge().from()).distinct() :
-                    sortableEdges.mapSorted(
-                            sortable -> sortable.getEdge().from(),
-                            vertex -> asSortable(new ThingEdgeImpl.Virtual(encoding, owner(), vertex, optimisedType))
-                    );
+                    sortableEdges.mapSorted(sortable -> sortable.getEdge().from(),
+                            vertex -> asDirected(new ThingEdgeImpl.Virtual(encoding, owner(), vertex, optimisedType)));
         }
 
         @Override
         public FunctionalIterator.Sorted<ThingVertex> to() {
-            return direction.isIn() ?
-                    sortableEdges.mapSorted(sortable -> sortable.getEdge().to()) :
+            return direction.isOut() ?
+                    sortableEdges.mapSorted(sortable -> sortable.getEdge().to(),
+                            vertex -> asDirected(new ThingEdgeImpl.Virtual(encoding, owner(), vertex, optimisedType))) :
                     sortableEdges.mapSorted(sortable -> sortable.getEdge().to()).distinct();
         }
 
@@ -154,8 +153,8 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
                 Encoding.Edge.Thing encoding, IID... lookahead) {
             ByteArray iid = join(owner.iid().bytes(), infixIID(encoding, lookahead).bytes());
             return owner.graph().storage().iterate(iid).mapSorted(
-                    keyValue -> asSortable(newPersistedEdge(EdgeIID.Thing.of(keyValue.key()))),
-                    sortable -> KeyValue.of(sortable.getKey().bytes(), ByteArray.empty())
+                    keyValue -> asDirected(newPersistedEdge(EdgeIID.Thing.of(keyValue.key()))),
+                    sortable -> KeyValue.of(sortable.iid().bytes(), ByteArray.empty())
             );
         }
 
@@ -308,7 +307,7 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
 
             edges.compute(infixIID, (iid, cachedEdges) -> {
                 if (cachedEdges == null) cachedEdges = new ConcurrentSkipListMap<>();
-                DirectedEdge sortableEdge = asSortable(edge);
+                DirectedEdge sortableEdge = asDirected(edge);
                 ThingEdge thingEdge = cachedEdges.get(sortableEdge);
                 if (thingEdge != null) {
                     if (thingEdge.isInferred() && !edge.isInferred()) thingEdge.isInferred(false);
@@ -365,7 +364,7 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
         public void remove(ThingEdge edge) {
             InfixIID.Thing infixIID = infixIID(edge.encoding(), infixTails(edge));
             if (edges.containsKey(infixIID)) {
-                edges.get(infixIID).remove(asSortable(edge));
+                edges.get(infixIID).remove(asDirected(edge));
                 owner.setModified();
             }
         }
@@ -436,8 +435,8 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
                 ByteArray prefix = join(owner.iid().bytes(), infixIID(encoding, lookahead).bytes());
                 FunctionalIterator.Sorted.Forwardable<DirectedEdge> storageIter = owner.graph().storage().iterate(prefix)
                         .mapSorted(
-                                keyValue -> asSortable(cache(newPersistedEdge(EdgeIID.Thing.of(keyValue.key())))),
-                                sortable -> KeyValue.of(sortable.getKey().bytes(), ByteArray.empty())
+                                keyValue -> asDirected(cache(newPersistedEdge(EdgeIID.Thing.of(keyValue.key())))),
+                                sortable -> KeyValue.of(sortable.iid().bytes(), ByteArray.empty())
                         );
                 FunctionalIterator.Sorted.Forwardable<DirectedEdge> bufferedIter = bufferedEdgeIterator(encoding, lookahead);
                 return bufferedIter.merge(storageIter).distinct();

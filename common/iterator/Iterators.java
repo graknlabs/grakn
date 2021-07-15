@@ -19,6 +19,7 @@
 package com.vaticle.typedb.core.common.iterator;
 
 import com.vaticle.typedb.common.collection.Either;
+import com.vaticle.typedb.core.common.iterator.FunctionalIterator.Sorted.Forwardable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -116,11 +117,11 @@ public class Iterators {
 
     public static class Sorted {
 
-        public static <T extends Comparable<T>> FunctionalIterator.Sorted.Forwardable<T> emptySorted() {
+        public static <T extends Comparable<T>> Forwardable<T> emptySorted() {
             return iterateSorted(new ConcurrentSkipListSet<T>());
         }
 
-        public static <T extends Comparable<? super T>> FunctionalIterator.Sorted.Forwardable<T> iterateSorted(NavigableSet<T> set) {
+        public static <T extends Comparable<? super T>> Forwardable<T> iterateSorted(NavigableSet<T> set) {
             return new BaseIterator.Sorted<>(set);
         }
 
@@ -129,8 +130,7 @@ public class Iterators {
             return new DistinctIterator.Sorted<>(iterator);
         }
 
-        public static <T extends Comparable<? super T>> FunctionalIterator.Sorted.Forwardable<T> distinct(
-                FunctionalIterator.Sorted.Forwardable<T> iterator) {
+        public static <T extends Comparable<? super T>> Forwardable<T> distinct(Forwardable<T> iterator) {
             return new DistinctIterator.Sorted.Forwardable<>(iterator);
         }
 
@@ -139,8 +139,8 @@ public class Iterators {
             return new FilteredIterator.Sorted<>(iterator, predicate);
         }
 
-        public static <T extends Comparable<? super T>> FunctionalIterator.Sorted.Forwardable<T> filter(
-                FunctionalIterator.Sorted.Forwardable<T> iterator, Predicate<T> predicate) {
+        public static <T extends Comparable<? super T>> Forwardable<T> filter(Forwardable<T> iterator,
+                                                                              Predicate<T> predicate) {
             return new FilteredIterator.Sorted.Forwardable<>(iterator, predicate);
         }
 
@@ -149,20 +149,20 @@ public class Iterators {
             return new MappedIterator.Sorted<>(iterator, mappingFn);
         }
 
-        public static <T extends Comparable<? super T>, U extends Comparable<? super U>> FunctionalIterator.Sorted.Forwardable<U> mapSorted(
-                FunctionalIterator.Sorted.Forwardable<T> iterator, Function<T, U> mappingFn, Function<U, T> reverseMappingFn) {
+        public static <T extends Comparable<? super T>, U extends Comparable<? super U>> Forwardable<U> mapSorted(
+                Forwardable<T> iterator, Function<T, U> mappingFn, Function<U, T> reverseMappingFn) {
             return new MappedIterator.Sorted.Forwardable<>(iterator, mappingFn, reverseMappingFn);
         }
 
         @SafeVarargs
-        public static <T extends Comparable<? super T>> FunctionalIterator.Sorted.Forwardable<T> merge(
-                FunctionalIterator.Sorted.Forwardable<T> iterator, FunctionalIterator.Sorted.Forwardable<T>... iterators) {
-            List<FunctionalIterator.Sorted.Forwardable<T>> iters = list(list(iterators), iterator);
+        public static <T extends Comparable<? super T>> Forwardable<T> merge(Forwardable<T> iterator,
+                                                                             Forwardable<T>... iterators) {
+            List<Forwardable<T>> iters = list(list(iterators), iterator);
             return new MergeMappedIterator.Forwardable<>(iterate(iters), e -> e);
         }
 
-        public static <T extends Comparable<? super T>> FunctionalIterator.Sorted.Forwardable<T> onFinalise(
-                FunctionalIterator.Sorted.Forwardable<T> iterator, Runnable finalise) {
+        public static <T extends Comparable<? super T>> Forwardable<T> onFinalise(Forwardable<T> iterator,
+                                                                                  Runnable finalise) {
             return new FinaliseHandledIterator.Sorted.Forwardable<>(iterator, finalise);
         }
     }

@@ -20,7 +20,6 @@ package com.vaticle.typedb.core.common.iterator;
 
 import com.vaticle.typedb.core.common.exception.TypeDBException;
 
-import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -62,34 +61,34 @@ class FinaliseHandledIterator<T> extends AbstractFunctionalIterator<T> implement
             extends AbstractFunctionalIterator.Sorted<T> {
 
         private final Runnable function;
-        final ITER source;
+        final ITER iterator;
         T last;
 
-        Sorted(ITER source, Runnable function) {
-            this.source = source;
+        Sorted(ITER iterator, Runnable function) {
+            this.iterator = iterator;
             this.function = function;
             this.last = null;
         }
 
         @Override
         public T peek() {
-            return source.peek();
+            return iterator.peek();
         }
 
         @Override
         public boolean hasNext() {
-            return source.hasNext();
+            return iterator.hasNext();
         }
 
         @Override
         public T next() {
-            last = source.next();
+            last = iterator.next();
             return last;
         }
 
         @Override
         public void recycle() {
-            source.recycle();
+            iterator.recycle();
         }
 
         @Override
@@ -108,7 +107,7 @@ class FinaliseHandledIterator<T> extends AbstractFunctionalIterator<T> implement
             @Override
             public void forward(T target) {
                 if (last != null && target.compareTo(last) < 0) throw TypeDBException.of(ILLEGAL_ARGUMENT);
-                source.forward(target);
+                iterator.forward(target);
             }
 
             @SafeVarargs
@@ -118,7 +117,8 @@ class FinaliseHandledIterator<T> extends AbstractFunctionalIterator<T> implement
             }
 
             @Override
-            public <U extends Comparable<? super U>> FunctionalIterator.Sorted.Forwardable<U> mapSorted(Function<T, U> mappingFn, Function<U, T> reverseMappingFn) {
+            public <U extends Comparable<? super U>> FunctionalIterator.Sorted.Forwardable<U> mapSorted(
+                    Function<T, U> mappingFn, Function<U, T> reverseMappingFn) {
                 return Iterators.Sorted.mapSorted(this, mappingFn, reverseMappingFn);
             }
 
@@ -132,15 +132,6 @@ class FinaliseHandledIterator<T> extends AbstractFunctionalIterator<T> implement
                 return Iterators.Sorted.filter(this, predicate);
             }
 
-            @Override
-            public boolean isForwadable() {
-                return true;
-            }
-
-            @Override
-            public FunctionalIterator.Sorted.Forwardable<T> asForwardable() {
-                return this;
-            }
         }
     }
 }

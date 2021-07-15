@@ -22,7 +22,6 @@ import com.vaticle.typedb.common.collection.Either;
 import com.vaticle.typedb.core.common.exception.TypeDBException;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.NavigableSet;
 import java.util.NoSuchElementException;
 import java.util.function.Function;
@@ -127,14 +126,5 @@ class BaseIterator<T> extends AbstractFunctionalIterator<T> {
         @Override
         public void recycle() { }
 
-        @Override
-        public boolean isForwadable() {
-            return true;
-        }
-
-        @Override
-        public Forwardable<T> asForwardable() {
-            return this;
-        }
     }
 }
