@@ -48,7 +48,7 @@ public class MigratorTest {
     private static final Path logDir = dataDir.resolve("logs");
     private static final Database options = new Database().dataDir(dataDir).logsDir(logDir);
     private static final String database = "typedb";
-    private static final Path schemaPath = Paths.get("test/integration/migrator/schema.gql");
+    private static final Path schemaPath = Paths.get("test/integration/migrator/schema.tql");
     private final Path dataPath = Paths.get("test/integration/migrator/data.typedb");
     private final Path exportDataPath = Paths.get("test/integration/migrator/exported-data.typedb");
 
