@@ -1,20 +1,3 @@
-#
-# Copyright (C) 2021 Vaticle
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-
 define
 
 access-token sub attribute,
@@ -37,6 +20,9 @@ build-performance-wait-for-correctness sub attribute,
 
 build-performance-wait-for-quality sub attribute,
     value boolean;
+
+command sub attribute,
+    value string;
 
 config sub attribute,
     value string;
@@ -65,10 +51,6 @@ discord-webhook-url sub attribute,
 duration sub attribute,
     value long;
 
-email sub attribute,
-    value string,
-    regex ".+\@.+\..+";
-
 ended sub attribute,
     value datetime;
 
@@ -93,7 +75,7 @@ github-token sub attribute,
 heads sub attribute,
     value string;
 
-id sub attribute,
+idr sub attribute,
     value string;
 
 index sub attribute,
@@ -119,6 +101,9 @@ label sub attribute,
 
 latest sub attribute,
     value boolean;
+
+monitor sub attribute,
+    value string;
 
 name sub attribute,
     value string;
@@ -161,9 +146,6 @@ resource-group sub attribute,
 
 run sub attribute,
     value long;
-
-script sub attribute,
-    value string;
 
 sha sub attribute,
     value string;
@@ -226,6 +208,10 @@ job-dependency sub relation,
 job-image sub relation,
     relates image,
     relates job;
+
+nested-relation sub relation,
+    relates nested,
+    plays nested-relation:nested;
 
 org-installer sub relation,
     relates installer,
@@ -328,6 +314,7 @@ analysis sub entity,
     abstract,
     owns analysis-id @key,
     owns created,
+    owns name,
     plays commit-analysis:analysis;
 
 dependency-analysis sub analysis,
@@ -351,10 +338,11 @@ automation sub entity,
     owns status;
 
 job sub automation,
+    owns command,
     owns environment-variable,
     owns ip,
     owns job-type,
-    owns script,
+    owns monitor,
     plays job-dependency:dependant,
     plays job-dependency:dependee,
     plays job-image:job,
@@ -469,8 +457,7 @@ repository sub entity,
 
 tag sub entity,
     owns symbol @key,
-    owns created,
-    owns heads,
+    owns latest,
     owns name,
     plays commit-dependency:dependee,
     plays commit-reference:reference,
@@ -481,10 +468,11 @@ team sub entity,
     owns symbol @key,
     owns name,
     plays org-team:team,
+    plays repo-team:team,
     plays team-member:team;
 
 trace sub entity,
-    owns id @key,
+    owns idr @key,
     owns data,
     owns duration,
     owns ended,
@@ -499,7 +487,7 @@ trace sub entity,
     plays trace-tree:parent;
 
 tracker sub entity,
-    owns id @key,
+    owns idr @key,
     owns name,
     owns path,
     plays performance-tracker:tracker,
@@ -512,7 +500,6 @@ user sub entity,
     owns access-token,
     owns discord-id,
     owns discord-webhook-url,
-    owns email,
     owns environment-variable,
     owns full-name,
     owns github-token,
@@ -525,185 +512,3 @@ user sub entity,
     plays repo-collaborator:collaborator,
     plays repo-owner:owner,
     plays team-member:member;
-
-rule performance-trace-rule:
-    when
-    {
-        (analysis: $x, trace: $y) isa performance-trace;
-        (parent: $y, child: $z) isa trace-tree;
-    }
-    then
-    {
-        (analysis: $x, trace: $z) isa performance-trace;
-    };
-
-rule performance-tracker-rule:
-    when
-    {
-        (analysis: $x, tracker: $y) isa performance-tracker;
-        (parent: $y, child: $z) isa tracker-tree;
-    }
-    then
-    {
-        (analysis: $x, tracker: $z) isa performance-tracker;
-    };
-
-rule repo-collaborator-org-fork-rule:
-    when
-    {
-        (org: $o, member: $u) isa org-member;
-        (repo: $r, owner: $o) isa repo-owner;
-        $r isa repository, has private true;
-        (parent: $r, child: $rc) isa repo-fork;
-    }
-    then
-    {
-        (repo: $rc, collaborator: $u) isa repo-collaborator;
-    };
-
-rule repo-collaborator-org-member-permission-rule:
-    when
-    {
-        $o isa organisation, has permission $p;
-        (org: $o, member: $u) isa org-member, has org-role "member";
-        (repo: $r, owner: $o) isa repo-owner;
-        $c (repo: $r, collaborator: $u) isa repo-collaborator;
-    }
-    then
-    {
-        $c has $p;
-    };
-
-rule repo-collaborator-org-owner-permission-rule:
-    when
-    {
-        (org: $o, member: $u) isa org-member, has org-role "owner";
-        (repo: $r, owner: $o) isa repo-owner;
-        $c (repo: $r, collaborator: $u) isa repo-collaborator;
-    }
-    then
-    {
-        $c has permission "admin";
-    };
-
-rule repo-collaborator-org-rule:
-    when
-    {
-        (org: $o, member: $u) isa org-member;
-        (repo: $r, owner: $o) isa repo-owner;
-    }
-    then
-    {
-        (repo: $r, collaborator: $u) isa repo-collaborator;
-    };
-
-rule repo-collaborator-permission-admin-owns-write-rule:
-    when
-    {
-        $c isa repo-collaborator, has permission "admin";
-    }
-    then
-    {
-        $c has permission "write";
-    };
-
-rule repo-collaborator-permission-write-owns-read-rule:
-    when
-    {
-        $c isa repo-collaborator, has permission "write";
-    }
-    then
-    {
-        $c has permission "read";
-    };
-
-rule repo-collaborator-user-permission-rule:
-    when
-    {
-        $owner isa user;
-        (repo: $repo, owner: $owner) isa repo-owner;
-        $c (repo: $repo, collaborator: $owner) isa repo-collaborator;
-    }
-    then
-    {
-        $c has permission "admin";
-    };
-
-rule repo-collaborator-user-rule:
-    when
-    {
-        $owner isa user;
-        (repo: $repo, owner: $owner) isa repo-owner;
-    }
-    then
-    {
-        (repo: $repo, collaborator: $owner) isa repo-collaborator;
-    };
-
-rule repo-dependency-transitive-rule:
-    when
-    {
-        (dependee: $x, dependant: $y) isa repo-dependency;
-        (dependee: $y, dependant: $z) isa repo-dependency;
-    }
-    then
-    {
-        (dependee: $x, dependant: $z) isa repo-dependency-transitive;
-    };
-
-rule repo-dependency-transitive-type-rule:
-    when
-    {
-        (dependee: $x, dependant: $y) isa repo-dependency, has reference-type $t;
-        (dependee: $y, dependant: $z) isa repo-dependency, has reference-type $t;
-        $d (dependee: $x, dependant: $z) isa repo-dependency-transitive;
-    }
-    then
-    {
-        $d has $t;
-    };
-
-rule repo-fork-rule:
-    when
-    {
-        (parent: $x, child: $y) isa repo-fork;
-        (parent: $y, child: $z) isa repo-fork;
-    }
-    then
-    {
-        (parent: $x, child: $z) isa repo-fork;
-    };
-
-rule trace-iteration-rule:
-    when
-    {
-        (parent: $x, child: $y) isa trace-tree;
-        $x has iteration $i;
-    }
-    then
-    {
-        $y has $i;
-    };
-
-rule trace-label-rule:
-    when
-    {
-        (parent: $x, child: $y) isa trace-tree;
-        $x has label $l;
-    }
-    then
-    {
-        $y has $l;
-    };
-
-rule tracker-trace-rule:
-    when
-    {
-        (tracker: $x, trace: $y) isa trace-tracker;
-        (parent: $y, child: $z) isa trace-tree;
-    }
-    then
-    {
-        (tracker: $x, trace: $z) isa trace-tracker;
-    };
-

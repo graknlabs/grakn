@@ -80,7 +80,7 @@ public class MigratorService extends MigratorGrpc.MigratorImplBase {
         if (e instanceof StatusRuntimeException) {
             return (StatusRuntimeException) e;
         } else {
-            return Status.INTERNAL.withDescription(e.getMessage() + " Please check server logs for the stack trace.").asRuntimeException();
+            return Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException();
         }
     }
 }

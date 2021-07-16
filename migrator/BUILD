@@ -67,6 +67,15 @@ native_java_libraries(
         "//logic:logic",
         "//rocks:rocks",
     ],
+    mac_deps = [
+        "@maven//:org_rocksdb_rocksdbjni_dev"
+    ],
+    linux_deps = [
+        "@maven//:org_rocksdb_rocksdbjni",
+    ],
+    windows_deps = [
+        "@maven//:org_rocksdb_rocksdbjni",
+    ],
     tags = ["maven_coordinates=com.vaticle.typedb:typedb-core-migrator:{pom_version}"],
     visibility = ["//visibility:public"],
 )

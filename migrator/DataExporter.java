@@ -94,6 +94,7 @@ public class DataExporter implements Migrator {
     public void run() {
         LOG.info("Exporting {} from TypeDB {}", database, version);
         try (OutputStream outputStream = new BufferedOutputStream(Files.newOutputStream(filename))) {
+            write(outputStream, header());
             try (TypeDB.Session session = typedb.session(database, Arguments.Session.Type.DATA);
                  TypeDB.Transaction tx = session.transaction(Arguments.Transaction.Type.READ)) {
                 totalEntityCount = tx.concepts().getRootEntityType().getInstancesCount();
@@ -134,6 +135,15 @@ public class DataExporter implements Migrator {
                 relationCount.get(),
                 roleCount.get(),
                 ownershipCount.get());
+    }
+
+    private DataProto.Item header() {
+        return DataProto.Item.newBuilder().setHeader(
+                DataProto.Item.Header.newBuilder()
+                .setOriginalDatabase(database)
+                .setTypedbVersion(version)
+                .build()
+        ).build();
     }
 
     private DataProto.Item readEntity(Entity entity) {

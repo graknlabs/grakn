@@ -44,6 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -58,8 +59,6 @@ import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -74,6 +73,7 @@ import static com.vaticle.typedb.core.common.exception.ErrorMessage.Migrator.PLA
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Migrator.ROLE_TYPE_NOT_FOUND;
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Migrator.TYPE_NOT_FOUND;
 import static com.vaticle.typedb.core.migrator.proto.DataProto.Item.ItemCase.HEADER;
+import static java.util.Comparator.reverseOrder;
 
 public class DataImporter implements Migrator {
 
@@ -87,10 +87,10 @@ public class DataImporter implements Migrator {
     private final Path filename;
 
     private final Map<String, String> remapLabels;
-    private final ConcurrentMap<String, ByteArray> idMap;
-    private final ConcurrentSet<DataProto.Item.Relation> skippedNestedRelations;
+    private final IDMapper idMapper;
     private final String version;
     private final Status status;
+    private final ConcurrentSet<DataProto.Item.Relation> skippedRelations;
     private Checksum checksum;
 
     DataImporter(RocksTypeDB typedb, String database, Path filename, Map<String, String> remapLabels, String version) {
@@ -103,18 +103,19 @@ public class DataImporter implements Migrator {
         this.parallelism = com.vaticle.typedb.core.concurrent.executor.Executors.PARALLELISATION_FACTOR;
         this.importExecutor = Executors.newFixedThreadPool(parallelism);
         this.readerExecutor = Executors.newSingleThreadExecutor();
-        this.idMap = new ConcurrentHashMap<>();
-        this.skippedNestedRelations = new ConcurrentSet<>();
+        this.idMapper = new IDMapper(database);
+        this.skippedRelations = new ConcurrentSet<>();
         this.status = new Status();
     }
 
-    private static class IDMapping {
+    private static class IDMapper {
 
         private final RocksDB storage;
+        private final Path directory;
 
-        IDMapping(String database) {
+        IDMapper(String database) {
             try {
-                Path directory = Files.createTempDirectory("_typedb_import_files");
+                directory = Files.createTempDirectory("_typedb_import_files");
                 storage = RocksDB.open(directory.resolve("_" + database).toString());
             } catch (IOException | RocksDBException e) {
                 throw TypeDBException.of(e);
@@ -123,11 +124,37 @@ public class DataImporter implements Migrator {
 
         public void close() {
             storage.close();
-            // TODO delete tmp directory
+            try {
+                Files.walk(directory).sorted(reverseOrder()).map(Path::toFile).forEach(File::delete);
+            } catch (IOException e) {
+                throw TypeDBException.of(e);
+            }
         }
 
-    }
+        public void record(String originalID, ByteArray newID) {
+            ByteArray original = ByteArray.encodeString(originalID);
+            try {
+                storage.put(original.getBytes(), newID.getBytes());
+            } catch (RocksDBException e) {
+                throw TypeDBException.of(e);
+            }
+        }
+        
+        public ByteArray get(String originalID) {
+            try {
+                byte[] value = storage.get(ByteArray.encodeString(originalID).getBytes());
+                assert value == null || value.length > 0;
+                if (value == null) return null;
+                else return ByteArray.of(value);
+            } catch (RocksDBException e) {
+                throw TypeDBException.of(e);
+            }
+        }
 
+        public boolean contains(String originalID) {
+            return get(originalID) != null;
+        }
+    }
 
     @Override
     public MigratorProto.Job.Progress getProgress() {
@@ -162,6 +189,7 @@ public class DataImporter implements Migrator {
     @Override
     public void close() {
         session.close();
+        idMapper.close();
     }
 
     @Override
@@ -172,7 +200,7 @@ public class DataImporter implements Migrator {
             new EntitiesAndOwnerships().run();
             new CompleteRelations().run();
             insertSkippedRelations();
-            if (!checksum.validate(status)) throw TypeDBException.of(IMPORT_CHECKSUM_MISMATCH);
+            if (!checksum.verify(status)) throw TypeDBException.of(IMPORT_CHECKSUM_MISMATCH);
         } catch (InterruptedException | ExecutionException e) {
             throw TypeDBException.of(e);
         } finally {
@@ -231,32 +259,32 @@ public class DataImporter implements Migrator {
         abstract class Worker {
 
             private final Map<ByteArray, String> bufferedIIDsToOriginalIds;
-            private final Map<String, ByteArray> originalIdsToBufferedIIDs;
+            private final Map<String, ByteArray> originalIDsToBufferedIIDs;
             private final BlockingQueue<DataProto.Item> items;
             RocksTransaction transaction;
 
             Worker(BlockingQueue<DataProto.Item> items) {
                 this.items = items;
                 transaction = session.transaction(Arguments.Transaction.Type.WRITE);
-                originalIdsToBufferedIIDs = new HashMap<>();
+                originalIDsToBufferedIIDs = new HashMap<>();
                 bufferedIIDsToOriginalIds = new HashMap<>();
             }
 
             abstract int importItem(DataProto.Item item);
 
-            void recordCreated(ByteArray newIID, String originalId) {
-                assert !originalIdsToBufferedIIDs.containsKey(originalId) && !idMap.containsKey(originalId);
-                bufferedIIDsToOriginalIds.put(newIID, originalId);
-                originalIdsToBufferedIIDs.put(originalId, newIID);
+            void recordCreated(ByteArray newIID, String originalID) {
+                assert !originalIDsToBufferedIIDs.containsKey(originalID) && !idMapper.contains(originalID);
+                bufferedIIDsToOriginalIds.put(newIID, originalID);
+                originalIDsToBufferedIIDs.put(originalID, newIID);
             }
 
-            protected void recordAttributeCreated(ByteArray iid, String originalId) {
-                idMap.put(originalId, iid);
+            protected void recordAttributeCreated(ByteArray iid, String originalID) {
+                idMapper.record(originalID, iid);
             }
 
-            Thing getThing(String originalId) {
+            Thing getThing(String originalID) {
                 ByteArray newIID;
-                if ((newIID = originalIdsToBufferedIIDs.get(originalId)) == null && (newIID = idMap.get(originalId)) == null) {
+                if ((newIID = originalIDsToBufferedIIDs.get(originalID)) == null && (newIID = idMapper.get(originalID)) == null) {
                     throw TypeDBException.of(ILLEGAL_STATE);
                 } else {
                     Thing thing = transaction.concepts().getThing(newIID);
@@ -265,8 +293,8 @@ public class DataImporter implements Migrator {
                 }
             }
 
-            boolean thingImported(String originalId) {
-                return originalIdsToBufferedIIDs.containsKey(originalId) || idMap.containsKey(originalId);
+            boolean thingImported(String originalID) {
+                return originalIDsToBufferedIIDs.containsKey(originalID) || idMapper.contains(originalID);
             }
 
             int insertOwnerships(String oldId, List<DataProto.Item.OwnedAttribute> ownedMsgs) {
@@ -305,10 +333,10 @@ public class DataImporter implements Migrator {
             private void commitBatch() {
                 transaction.commit();
                 ((RocksTransaction.Data) transaction).bufferedToPersistedThingIIDs().forEachRemaining(pair -> {
-                    idMap.put(bufferedIIDsToOriginalIds.get(pair.first()), pair.second());
+                    idMapper.record(bufferedIIDsToOriginalIds.get(pair.first()), pair.second());
                 });
                 bufferedIIDsToOriginalIds.clear();
-                originalIdsToBufferedIIDs.clear();
+                originalIDsToBufferedIIDs.clear();
             }
         }
 
@@ -418,7 +446,7 @@ public class DataImporter implements Migrator {
                         if (inserted.isPresent()) {
                             return inserted.get() + insertOwnerships(item.getRelation().getId(), item.getRelation().getAttributeList());
                         } else {
-                            skippedNestedRelations.add(item.getRelation());
+                            skippedRelations.add(item.getRelation());
                             return 0;
                         }
                     } else return 0;
@@ -460,22 +488,22 @@ public class DataImporter implements Migrator {
 
     private void insertSkippedRelations() {
         try (TypeDB.Transaction transaction = session.transaction(Arguments.Transaction.Type.WRITE)) {
-            skippedNestedRelations.forEach(relationMsg -> {
+            skippedRelations.forEach(relationMsg -> {
                 RelationType relationType = transaction.concepts().getRelationType(relabel(relationMsg.getLabel()));
                 if (relationType == null) {
                     throw TypeDBException.of(TYPE_NOT_FOUND, relabel(relationMsg.getLabel()), relationMsg.getLabel());
                 }
                 Relation relation = relationType.create();
-                idMap.put(relationMsg.getId(), relation.getIID());
+                idMapper.record(relationMsg.getId(), relation.getIID());
             });
 
-            skippedNestedRelations.forEach(relationMsg -> {
+            skippedRelations.forEach(relationMsg -> {
                 RelationType relationType = transaction.concepts().getRelationType(relabel(relationMsg.getLabel()));
-                Relation relation = transaction.concepts().getThing(idMap.get(relationMsg.getId())).asRelation();
+                Relation relation = transaction.concepts().getThing(idMapper.get(relationMsg.getId())).asRelation();
                 relationMsg.getRoleList().forEach(roleMsg -> {
                     RoleType roleType = getRoleType(relationType, roleMsg);
                     for (DataProto.Item.Relation.Role.Player playerMessage : roleMsg.getPlayerList()) {
-                        Thing player = transaction.concepts().getThing(idMap.get(playerMessage.getId()));
+                        Thing player = transaction.concepts().getThing(idMapper.get(playerMessage.getId()));
                         if (player == null) throw TypeDBException.of(PLAYER_NOT_FOUND, relationType.getLabel());
                         else relation.addPlayer(roleType, player);
                     }
@@ -524,7 +552,7 @@ public class DataImporter implements Migrator {
             this.roles = roles;
         }
 
-        public boolean validate(Status status) {
+        public boolean verify(Status status) {
             return attributes == status.attributeCount.get() &&
                     entities == status.entityCount.get() &&
                     relations == status.relationCount.get() &&
