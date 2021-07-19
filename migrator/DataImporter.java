@@ -64,6 +64,8 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_STATE;
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Migrator.FILE_NOT_FOUND;
@@ -148,9 +150,9 @@ public class DataImporter implements Migrator {
     public void run() {
         try {
             readHeader();
-            new InitAndAttributes().run();
-            new EntitiesAndOwnerships().run();
-            new CompleteRelations().run();
+            new ParallelImport(InitAndAttributes::new).run();
+            new ParallelImport(EntitiesAndOwnerships::new).run();
+            new ParallelImport(CompleteRelations::new).run();
             insertSkippedRelations();
             if (!checksum.verify(status)) throw TypeDBException.of(IMPORT_CHECKSUM_MISMATCH);
         } catch (InterruptedException | ExecutionException e) {
@@ -180,18 +182,22 @@ public class DataImporter implements Migrator {
         }
     }
 
-    private abstract class Job {
+    private class ParallelImport {
+
+        private final Function<BlockingQueue<DataProto.Item>, ImportWorker> workerConstructor;
+
+        ParallelImport(Function<BlockingQueue<DataProto.Item>, ImportWorker> workerConstructor) {
+            this.workerConstructor = workerConstructor;
+        }
 
         void run() throws InterruptedException, ExecutionException {
             BlockingQueue<DataProto.Item> items = readFile();
             CompletableFuture<Void>[] workers = new CompletableFuture[parallelism];
             for (int i = 0; i < parallelism; i++) {
-                workers[i] = CompletableFuture.runAsync(() -> createWorker(items).run(), importExecutor);
+                workers[i] = CompletableFuture.runAsync(() -> workerConstructor.apply(items).run(), importExecutor);
             }
             CompletableFuture.allOf(workers).get();
         }
-
-        abstract Worker createWorker(BlockingQueue<DataProto.Item> items);
 
         private BlockingQueue<DataProto.Item> readFile() {
             BlockingQueue<DataProto.Item> queue = new ArrayBlockingQueue<>(1000);
@@ -207,236 +213,228 @@ public class DataImporter implements Migrator {
             }, readerExecutor);
             return queue;
         }
+    }
 
-        abstract class Worker {
+    private abstract class ImportWorker {
 
-            private final Map<ByteArray, String> bufferedIIDsToOriginalIds;
+        private final Map<ByteArray, String> bufferedIIDsToOriginalIds;
 
-            private final Map<String, ByteArray> originalIDsToBufferedIIDs;
-            private final BlockingQueue<DataProto.Item> items;
-            RocksTransaction transaction;
+        private final Map<String, ByteArray> originalIDsToBufferedIIDs;
+        private final BlockingQueue<DataProto.Item> items;
+        RocksTransaction transaction;
 
-            Worker(BlockingQueue<DataProto.Item> items) {
-                this.items = items;
-                transaction = session.transaction(Arguments.Transaction.Type.WRITE);
-                originalIDsToBufferedIIDs = new HashMap<>();
-                bufferedIIDsToOriginalIds = new HashMap<>();
-            }
+        ImportWorker(BlockingQueue<DataProto.Item> items) {
+            this.items = items;
+            transaction = session.transaction(Arguments.Transaction.Type.WRITE);
+            originalIDsToBufferedIIDs = new HashMap<>();
+            bufferedIIDsToOriginalIds = new HashMap<>();
+        }
 
-            abstract int importItem(DataProto.Item item);
+        abstract int importItem(DataProto.Item item);
 
-            void run() {
-                int count = 0;
-                DataProto.Item item;
-                try {
-                    while ((item = items.poll(1, TimeUnit.SECONDS)) != null) {
-                        if (count >= BATCH_SIZE) {
-                            commitBatch();
-                            transaction = session.transaction(Arguments.Transaction.Type.WRITE);
-                            count = 0;
-                        }
-                        count += importItem(item);
+        void run() {
+            int count = 0;
+            DataProto.Item item;
+            try {
+                while ((item = items.poll(1, TimeUnit.SECONDS)) != null) {
+                    if (count >= BATCH_SIZE) {
+                        commitBatch();
+                        transaction = session.transaction(Arguments.Transaction.Type.WRITE);
+                        count = 0;
                     }
-                    commitBatch();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } finally {
-                    transaction.close();
+                    count += importItem(item);
                 }
+                commitBatch();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } finally {
+                transaction.close();
             }
+        }
 
-            void recordCreated(ByteArray newIID, String originalID) {
-                assert !originalIDsToBufferedIIDs.containsKey(originalID) && !idMapper.contains(originalID);
-                bufferedIIDsToOriginalIds.put(newIID, originalID);
-                originalIDsToBufferedIIDs.put(originalID, newIID);
+        void recordCreated(ByteArray newIID, String originalID) {
+            assert !originalIDsToBufferedIIDs.containsKey(originalID) && !idMapper.contains(originalID);
+            bufferedIIDsToOriginalIds.put(newIID, originalID);
+            originalIDsToBufferedIIDs.put(originalID, newIID);
+        }
+
+        protected void recordAttributeCreated(ByteArray iid, String originalID) {
+            idMapper.put(originalID, iid);
+        }
+
+        Thing getThing(String originalID) {
+            ByteArray newIID;
+            if ((newIID = originalIDsToBufferedIIDs.get(originalID)) == null && (newIID = idMapper.get(originalID)) == null) {
+                throw TypeDBException.of(ILLEGAL_STATE);
+            } else {
+                Thing thing = transaction.concepts().getThing(newIID);
+                assert thing != null;
+                return thing;
             }
+        }
 
-            protected void recordAttributeCreated(ByteArray iid, String originalID) {
-                idMapper.put(originalID, iid);
+        boolean isImported(String originalID) {
+            return originalIDsToBufferedIIDs.containsKey(originalID) || idMapper.contains(originalID);
+        }
+
+        int insertOwnerships(String originalId, List<DataProto.Item.OwnedAttribute> ownedMsgs) {
+            Thing owner = getThing(originalId);
+            int ownerships = 0;
+            for (DataProto.Item.OwnedAttribute ownedMsg : ownedMsgs) {
+                Thing attrThing = getThing(ownedMsg.getId());
+                assert attrThing != null;
+                owner.setHas(attrThing.asAttribute());
+                ownerships++;
             }
+            status.ownershipCount.addAndGet(ownerships);
+            return ownerships;
+        }
 
-            Thing getThing(String originalID) {
-                ByteArray newIID;
-                if ((newIID = originalIDsToBufferedIIDs.get(originalID)) == null && (newIID = idMapper.get(originalID)) == null) {
-                    throw TypeDBException.of(ILLEGAL_STATE);
+        private void commitBatch() {
+            transaction.commit();
+            ((RocksTransaction.Data) transaction).bufferedToPersistedThingIIDs().forEachRemaining(pair -> {
+                idMapper.put(bufferedIIDsToOriginalIds.get(pair.first()), pair.second());
+            });
+            bufferedIIDsToOriginalIds.clear();
+            originalIDsToBufferedIIDs.clear();
+        }
+    }
+
+    private class InitAndAttributes extends ImportWorker {
+
+        InitAndAttributes(BlockingQueue<DataProto.Item> items) {
+            super(items);
+        }
+
+        @Override
+        int importItem(DataProto.Item item) {
+            switch (item.getItemCase()) {
+                case ATTRIBUTE:
+                    insertAttribute(transaction, item.getAttribute());
+                    return 1;
+                case CHECKSUMS:
+                    DataProto.Item.Checksums checksums = item.getChecksums();
+                    DataImporter.this.checksum = new Checksum(checksums.getAttributeCount(), checksums.getEntityCount(),
+                            checksums.getRelationCount(), checksums.getOwnershipCount(), checksums.getRoleCount());
+                    return 0;
+                default:
+                    return 0;
+            }
+        }
+
+        private void insertAttribute(TypeDB.Transaction transaction, DataProto.Item.Attribute attributeMsg) {
+            AttributeType attributeType = transaction.concepts().getAttributeType(relabel(attributeMsg.getLabel()));
+            if (attributeType != null) {
+                DataProto.ValueObject valueMsg = attributeMsg.getValue();
+                Attribute attribute;
+                switch (valueMsg.getValueCase()) {
+                    case STRING:
+                        attribute = attributeType.asString().put(valueMsg.getString());
+                        break;
+                    case BOOLEAN:
+                        attribute = attributeType.asBoolean().put(valueMsg.getBoolean());
+                        break;
+                    case LONG:
+                        attribute = attributeType.asLong().put(valueMsg.getLong());
+                        break;
+                    case DOUBLE:
+                        attribute = attributeType.asDouble().put(valueMsg.getDouble());
+                        break;
+                    case DATETIME:
+                        attribute = attributeType.asDateTime().put(
+                                Instant.ofEpochMilli(valueMsg.getDatetime()).atZone(ZoneId.of("Z")).toLocalDateTime());
+                        break;
+                    default:
+                        throw TypeDBException.of(INVALID_DATA);
+                }
+                recordAttributeCreated(attribute.getIID(), attributeMsg.getId());
+                status.attributeCount.incrementAndGet();
+            } else {
+                throw TypeDBException.of(TYPE_NOT_FOUND, relabel(attributeMsg.getLabel()), attributeMsg.getLabel());
+            }
+        }
+    }
+
+    private class EntitiesAndOwnerships extends ImportWorker {
+
+        EntitiesAndOwnerships(BlockingQueue<DataProto.Item> items) {
+            super(items);
+        }
+
+        @Override
+        int importItem(DataProto.Item item) {
+            switch (item.getItemCase()) {
+                case ENTITY:
+                    insertEntity(transaction, item.getEntity());
+                    return 1 + insertOwnerships(item.getEntity().getId(), item.getEntity().getAttributeList());
+                case ATTRIBUTE:
+                    return insertOwnerships(item.getAttribute().getId(), item.getAttribute().getAttributeList());
+                default:
+                    return 0;
+            }
+        }
+
+        private void insertEntity(TypeDB.Transaction transaction, DataProto.Item.Entity entityMsg) {
+            EntityType entityType = transaction.concepts().getEntityType(relabel(entityMsg.getLabel()));
+            if (entityType != null) {
+                Entity entity = entityType.create();
+                recordCreated(entity.getIID(), entityMsg.getId());
+                status.entityCount.incrementAndGet();
+            } else {
+                throw TypeDBException.of(TYPE_NOT_FOUND, relabel(entityMsg.getLabel()), entityMsg.getLabel());
+            }
+        }
+    }
+
+    private class CompleteRelations extends ImportWorker {
+
+        CompleteRelations(BlockingQueue<DataProto.Item> items) {
+            super(items);
+        }
+
+        @Override
+        int importItem(DataProto.Item item) {
+            if (item.getItemCase() == DataProto.Item.ItemCase.RELATION) {
+                Optional<Integer> inserted = tryInsertCompleteRelation(item.getRelation());
+                if (inserted.isPresent()) {
+                    return inserted.get() + insertOwnerships(item.getRelation().getId(), item.getRelation().getAttributeList());
                 } else {
-                    Thing thing = transaction.concepts().getThing(newIID);
-                    assert thing != null;
-                    return thing;
+                    skippedRelations.add(item.getRelation());
+                    return 0;
                 }
-            }
-
-            boolean isImported(String originalID) {
-                return originalIDsToBufferedIIDs.containsKey(originalID) || idMapper.contains(originalID);
-            }
-
-            int insertOwnerships(String originalId, List<DataProto.Item.OwnedAttribute> ownedMsgs) {
-                Thing owner = getThing(originalId);
-                int ownerships = 0;
-                for (DataProto.Item.OwnedAttribute ownedMsg : ownedMsgs) {
-                    Thing attrThing = getThing(ownedMsg.getId());
-                    assert attrThing != null;
-                    owner.setHas(attrThing.asAttribute());
-                    ownerships++;
-                }
-                status.ownershipCount.addAndGet(ownerships);
-                return ownerships;
-            }
-
-            private void commitBatch() {
-                transaction.commit();
-                ((RocksTransaction.Data) transaction).bufferedToPersistedThingIIDs().forEachRemaining(pair -> {
-                    idMapper.put(bufferedIIDsToOriginalIds.get(pair.first()), pair.second());
-                });
-                bufferedIIDsToOriginalIds.clear();
-                originalIDsToBufferedIIDs.clear();
-            }
-        }
-    }
-
-    private class InitAndAttributes extends Job {
-
-        @Override
-        Worker createWorker(BlockingQueue<DataProto.Item> items) {
-            return new Worker(items) {
-
-                @Override
-                int importItem(DataProto.Item item) {
-                    switch (item.getItemCase()) {
-                        case ATTRIBUTE:
-                            insertAttribute(transaction, item.getAttribute());
-                            return 1;
-                        case CHECKSUMS:
-                            DataProto.Item.Checksums checksums = item.getChecksums();
-                            DataImporter.this.checksum = new Checksum(checksums.getAttributeCount(), checksums.getEntityCount(),
-                                    checksums.getRelationCount(), checksums.getOwnershipCount(), checksums.getRoleCount());
-                            return 0;
-                        default:
-                            return 0;
-                    }
-                }
-
-                private void insertAttribute(TypeDB.Transaction transaction, DataProto.Item.Attribute attributeMsg) {
-                    AttributeType attributeType = transaction.concepts().getAttributeType(relabel(attributeMsg.getLabel()));
-                    if (attributeType != null) {
-                        DataProto.ValueObject valueMsg = attributeMsg.getValue();
-                        Attribute attribute;
-                        switch (valueMsg.getValueCase()) {
-                            case STRING:
-                                attribute = attributeType.asString().put(valueMsg.getString());
-                                break;
-                            case BOOLEAN:
-                                attribute = attributeType.asBoolean().put(valueMsg.getBoolean());
-                                break;
-                            case LONG:
-                                attribute = attributeType.asLong().put(valueMsg.getLong());
-                                break;
-                            case DOUBLE:
-                                attribute = attributeType.asDouble().put(valueMsg.getDouble());
-                                break;
-                            case DATETIME:
-                                attribute = attributeType.asDateTime().put(
-                                        Instant.ofEpochMilli(valueMsg.getDatetime()).atZone(ZoneId.of("Z")).toLocalDateTime());
-                                break;
-                            default:
-                                throw TypeDBException.of(INVALID_DATA);
-                        }
-                        recordAttributeCreated(attribute.getIID(), attributeMsg.getId());
-                        status.attributeCount.incrementAndGet();
-                    } else {
-                        throw TypeDBException.of(TYPE_NOT_FOUND, relabel(attributeMsg.getLabel()), attributeMsg.getLabel());
-                    }
-                }
-            };
-        }
-    }
-
-    private class EntitiesAndOwnerships extends Job {
-
-        @Override
-        Worker createWorker(BlockingQueue<DataProto.Item> items) {
-            return new Worker(items) {
-
-                @Override
-                int importItem(DataProto.Item item) {
-                    switch (item.getItemCase()) {
-                        case ENTITY:
-                            insertEntity(transaction, item.getEntity());
-                            return 1 + insertOwnerships(item.getEntity().getId(), item.getEntity().getAttributeList());
-                        case ATTRIBUTE:
-                            return insertOwnerships(item.getAttribute().getId(), item.getAttribute().getAttributeList());
-                        default:
-                            return 0;
-                    }
-                }
-
-                private void insertEntity(TypeDB.Transaction transaction, DataProto.Item.Entity entityMsg) {
-                    EntityType entityType = transaction.concepts().getEntityType(relabel(entityMsg.getLabel()));
-                    if (entityType != null) {
-                        Entity entity = entityType.create();
-                        recordCreated(entity.getIID(), entityMsg.getId());
-                        status.entityCount.incrementAndGet();
-                    } else {
-                        throw TypeDBException.of(TYPE_NOT_FOUND, relabel(entityMsg.getLabel()), entityMsg.getLabel());
-                    }
-                }
-            };
+            } else return 0;
         }
 
-    }
-
-    private class CompleteRelations extends Job {
-
-        @Override
-        Worker createWorker(BlockingQueue<DataProto.Item> items) {
-            return new Worker(items) {
-
-                @Override
-                int importItem(DataProto.Item item) {
-                    if (item.getItemCase() == DataProto.Item.ItemCase.RELATION) {
-                        Optional<Integer> inserted = tryInsertCompleteRelation(item.getRelation());
-                        if (inserted.isPresent()) {
-                            return inserted.get() + insertOwnerships(item.getRelation().getId(), item.getRelation().getAttributeList());
-                        } else {
-                            skippedRelations.add(item.getRelation());
-                            return 0;
-                        }
-                    } else return 0;
-                }
-
-                private Optional<Integer> tryInsertCompleteRelation(DataProto.Item.Relation relationMsg) {
-                    RelationType relationType = transaction.concepts().getRelationType(relabel(relationMsg.getLabel()));
-                    Optional<List<Pair<RoleType, Thing>>> players;
-                    if (relationType == null) {
-                        throw TypeDBException.of(TYPE_NOT_FOUND, relabel(relationMsg.getLabel()), relationMsg.getLabel());
-                    } else if ((players = getAllPlayers(relationType, relationMsg)).isPresent()) {
-                        assert players.get().size() > 0;
-                        Relation relation = relationType.create();
-                        recordCreated(relation.getIID(), relationMsg.getId());
-                        players.get().forEach(rp -> relation.addPlayer(rp.first(), rp.second()));
-                        status.relationCount.incrementAndGet();
-                        status.roleCount.addAndGet(players.get().size());
-                        return Optional.of(1 + players.get().size());
-                    } else {
-                        return Optional.empty();
-                    }
-                }
-
-                private Optional<List<Pair<RoleType, Thing>>> getAllPlayers(RelationType relationType, DataProto.Item.Relation relationMsg) {
-                    assert relationMsg.getRoleList().size() > 0;
-                    List<Pair<RoleType, Thing>> players = new ArrayList<>();
-                    for (DataProto.Item.Relation.Role roleMsg : relationMsg.getRoleList()) {
-                        RoleType roleType = getRoleType(relationType, roleMsg);
-                        for (DataProto.Item.Relation.Role.Player playerMessage : roleMsg.getPlayerList()) {
-                            if (!isImported(playerMessage.getId())) return Optional.empty();
-                            else players.add(new Pair<>(roleType, getThing(playerMessage.getId())));
-                        }
-                    }
-                    return Optional.of(players);
-                }
-            };
+        private Optional<Integer> tryInsertCompleteRelation(DataProto.Item.Relation relationMsg) {
+            RelationType relationType = transaction.concepts().getRelationType(relabel(relationMsg.getLabel()));
+            Optional<List<Pair<RoleType, Thing>>> players;
+            if (relationType == null) {
+                throw TypeDBException.of(TYPE_NOT_FOUND, relabel(relationMsg.getLabel()), relationMsg.getLabel());
+            } else if ((players = getAllPlayers(relationType, relationMsg)).isPresent()) {
+                assert players.get().size() > 0;
+                Relation relation = relationType.create();
+                recordCreated(relation.getIID(), relationMsg.getId());
+                players.get().forEach(rp -> relation.addPlayer(rp.first(), rp.second()));
+                status.relationCount.incrementAndGet();
+                status.roleCount.addAndGet(players.get().size());
+                return Optional.of(1 + players.get().size());
+            } else {
+                return Optional.empty();
+            }
         }
 
+        private Optional<List<Pair<RoleType, Thing>>> getAllPlayers(RelationType relationType, DataProto.Item.Relation relationMsg) {
+            assert relationMsg.getRoleList().size() > 0;
+            List<Pair<RoleType, Thing>> players = new ArrayList<>();
+            for (DataProto.Item.Relation.Role roleMsg : relationMsg.getRoleList()) {
+                RoleType roleType = getRoleType(relationType, roleMsg);
+                for (DataProto.Item.Relation.Role.Player playerMessage : roleMsg.getPlayerList()) {
+                    if (!isImported(playerMessage.getId())) return Optional.empty();
+                    else players.add(new Pair<>(roleType, getThing(playerMessage.getId())));
+                }
+            }
+            return Optional.of(players);
+        }
     }
 
     private void insertSkippedRelations() {
