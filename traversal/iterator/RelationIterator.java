@@ -67,6 +67,8 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
     private ThingVertex relation;
     private State state;
 
+    private enum State { INIT, EMPTY, PROPOSED, FETCHED, COMPLETED }
+
     public RelationIterator(Structure structure, Traversal.Parameters parameters, GraphManager graphMgr) {
         this.graphMgr = graphMgr;
         this.parameters = parameters;
@@ -78,38 +80,6 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
         scoped = new Scoped();
         state = State.INIT;
         relationProposer = 0;
-    }
-
-    private enum State {
-        INIT, EMPTY, PROPOSED, FETCHED, COMPLETED;
-    }
-
-    private boolean tryInitialise() {
-        StructureVertex.Thing relationVertex = relationVertex();
-        assert relationVertex.asThing().props().types().size() == 1;
-        relationId = relationVertex.id().asVariable().asRetrievable();
-        relationType = graphMgr.schema().getType(relationVertex.props().types().iterator().next());
-        return tryInitialiseFixedPlayers();
-    }
-
-    private StructureVertex.Thing relationVertex() {
-        List<StructureVertex<?>> withoutIID = iterate(vertices)
-                .filter(vertex -> !parameters.withIID().contains(vertex.id().asVariable().asRetrievable())).toList();
-        assert withoutIID.size() == 1;
-        return withoutIID.get(0).asThing();
-    }
-
-    private boolean tryInitialiseFixedPlayers() {
-        for (Identifier.Variable withIID : parameters.withIID()) {
-            assert withIID.isRetrievable();
-            ThingVertex thingVertex = graphMgr.data().getReadable(parameters.getIID(withIID));
-            if (thingVertex == null) {
-                state = State.COMPLETED;
-                return false;
-            }
-            answer.put(withIID.asRetrievable(), thingVertex);
-        }
-        return true;
     }
 
     @Override
@@ -143,11 +113,39 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
         if (tryInitialise() && proposeFirst()) {
             state = State.PROPOSED;
             while (state == State.PROPOSED) {
-                verifyProposeOrComplete();
+                verifyProposed();
             }
         } else {
             state = State.COMPLETED;
         }
+    }
+
+    private boolean tryInitialise() {
+        StructureVertex.Thing relationVertex = relationVertex();
+        assert relationVertex.asThing().props().types().size() == 1;
+        relationId = relationVertex.id().asVariable().asRetrievable();
+        relationType = graphMgr.schema().getType(relationVertex.props().types().iterator().next());
+        return tryInitialiseFixedPlayers();
+    }
+
+    private StructureVertex.Thing relationVertex() {
+        List<StructureVertex<?>> withoutIID = iterate(vertices)
+                .filter(vertex -> !parameters.withIID().contains(vertex.id().asVariable().asRetrievable())).toList();
+        assert withoutIID.size() == 1;
+        return withoutIID.get(0).asThing();
+    }
+
+    private boolean tryInitialiseFixedPlayers() {
+        for (Identifier.Variable withIID : parameters.withIID()) {
+            assert withIID.isRetrievable();
+            ThingVertex thingVertex = graphMgr.data().getReadable(parameters.getIID(withIID));
+            if (thingVertex == null) {
+                state = State.COMPLETED;
+                return false;
+            }
+            answer.put(withIID.asRetrievable(), thingVertex);
+        }
+        return true;
     }
 
     private boolean proposeFirst() {
@@ -165,7 +163,7 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
         if (proposeNext()) {
             state = State.PROPOSED;
             while (state == State.PROPOSED) {
-                verifyProposeOrComplete();
+                verifyProposed();
             }
         } else {
             state = State.COMPLETED;
@@ -187,16 +185,16 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
         return false;
     }
 
-    private void verifyProposeOrComplete() {
+    private void verifyProposed() {
         for (int i = 0; i < edges.size(); i++) {
-            if (i != relationProposer && !verify(i)) return;
+            if (i != relationProposer && !verifyProposed(i)) return;
         }
         answer.put(relationId, relation);
         state = State.FETCHED;
     }
 
-    private boolean verify(int i) {
-        FunctionalIterator.Sorted.Forwardable<ThingVertex> relationIterator = getIterator(i);
+    private boolean verifyProposed(int edge) {
+        FunctionalIterator.Sorted.Forwardable<ThingVertex> relationIterator = getIterator(edge);
         if (!relationIterator.hasNext()) {
             state = State.COMPLETED;
             return false;
@@ -207,9 +205,9 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
             return true;
         } else if (comparison < 0) {
             relationIterator.forward(this.relation);
-            return verify(i);
+            return verifyProposed(edge);
         } else {
-            propose(i, relationIterator.next());
+            propose(edge, relationIterator.next());
             return false;
         }
     }
