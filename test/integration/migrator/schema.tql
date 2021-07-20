@@ -15,7 +15,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-
 define
 
 access-token sub attribute,
@@ -530,3 +529,14 @@ user sub entity,
     plays repo-collaborator:collaborator,
     plays repo-owner:owner,
     plays team-member:member;
+
+rule performance-trace-rule:
+    when
+    {
+        (analysis: $x, trace: $y) isa performance-trace;
+        (parent: $y, child: $z) isa trace-tree;
+    }
+    then
+    {
+        (analysis: $x, trace: $z) isa performance-trace;
+    };

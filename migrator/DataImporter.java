@@ -65,7 +65,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_STATE;
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Migrator.FILE_NOT_FOUND;
@@ -86,7 +85,7 @@ public class DataImporter implements Migrator {
     private final Executor importExecutor;
     private final Executor readerExecutor;
     private final int parallelism;
-    private final Path filename;
+    private final Path dataFile;
 
     private final Map<String, String> remapLabels;
     private final IDMapper idMapper;
@@ -95,10 +94,10 @@ public class DataImporter implements Migrator {
     private final ConcurrentSet<DataProto.Item.Relation> skippedRelations;
     private Checksum checksum;
 
-    DataImporter(RocksTypeDB typedb, String database, Path filename, Map<String, String> remapLabels, String version) {
-        if (!Files.exists(filename)) throw TypeDBException.of(FILE_NOT_FOUND, filename);
+    DataImporter(RocksTypeDB typedb, String database, Path dataFile, Map<String, String> remapLabels, String version) {
+        if (!Files.exists(dataFile)) throw TypeDBException.of(FILE_NOT_FOUND, dataFile);
         this.session = typedb.session(database, Arguments.Session.Type.DATA);
-        this.filename = filename;
+        this.dataFile = dataFile;
         this.remapLabels = remapLabels;
         this.version = version;
         assert com.vaticle.typedb.core.concurrent.executor.Executors.isInitialised();
@@ -108,6 +107,48 @@ public class DataImporter implements Migrator {
         this.idMapper = new IDMapper(database);
         this.skippedRelations = new ConcurrentSet<>();
         this.status = new Status();
+    }
+
+    @Override
+    public void run() {
+        try {
+            readHeader();
+            new ParallelImport(AttributesAndChecksum::new).run();
+            new ParallelImport(EntitiesAndOwnerships::new).run();
+            new ParallelImport(CompleteRelations::new).run();
+            importSkippedRelations();
+            if (!checksum.verify(status)) throw TypeDBException.of(IMPORT_CHECKSUM_MISMATCH);
+        } catch (InterruptedException | ExecutionException e) {
+            throw TypeDBException.of(e);
+        } finally {
+            LOG.info("Imported {} entities, {} attributes, {} relations ({} roles), {} ownerships",
+                    status.entityCount.get(),
+                    status.attributeCount.get(),
+                    status.relationCount.get(),
+                    status.roleCount.get(),
+                    status.ownershipCount.get());
+        }
+    }
+
+    @Override
+    public void close() {
+        session.close();
+        idMapper.close();
+    }
+
+    private void readHeader() {
+        try (InputStream inputStream = new BufferedInputStream(Files.newInputStream(dataFile))) {
+            DataProto.Item item = ITEM_PARSER.parseDelimitedFrom(inputStream);
+            assert item.getItemCase().equals(HEADER);
+            DataProto.Item.Header header = item.getHeader();
+            LOG.info("Importing {} from TypeDB {} to {} in TypeDB {}",
+                    header.getOriginalDatabase(),
+                    header.getTypedbVersion(),
+                    session.database().name(),
+                    version);
+        } catch (IOException e) {
+            throw TypeDBException.of(e);
+        }
     }
 
     @Override
@@ -140,48 +181,6 @@ public class DataImporter implements Migrator {
         }
     }
 
-    @Override
-    public void close() {
-        session.close();
-        idMapper.close();
-    }
-
-    @Override
-    public void run() {
-        try {
-            readHeader();
-            new ParallelImport(InitAndAttributes::new).run();
-            new ParallelImport(EntitiesAndOwnerships::new).run();
-            new ParallelImport(CompleteRelations::new).run();
-            insertSkippedRelations();
-            if (!checksum.verify(status)) throw TypeDBException.of(IMPORT_CHECKSUM_MISMATCH);
-        } catch (InterruptedException | ExecutionException e) {
-            throw TypeDBException.of(e);
-        } finally {
-            LOG.info("Imported {} entities, {} attributes, {} relations ({} roles), {} ownerships",
-                    status.entityCount.get(),
-                    status.attributeCount.get(),
-                    status.relationCount.get(),
-                    status.roleCount.get(),
-                    status.ownershipCount.get());
-        }
-    }
-
-    private void readHeader() {
-        try (InputStream inputStream = new BufferedInputStream(Files.newInputStream(filename))) {
-            DataProto.Item item = ITEM_PARSER.parseDelimitedFrom(inputStream);
-            assert item.getItemCase().equals(HEADER);
-            DataProto.Item.Header header = item.getHeader();
-            LOG.info("Importing {} from TypeDB {} to {} in TypeDB {}",
-                    header.getOriginalDatabase(),
-                    header.getTypedbVersion(),
-                    session.database().name(),
-                    version);
-        } catch (IOException e) {
-            throw TypeDBException.of(e);
-        }
-    }
-
     private class ParallelImport {
 
         private final Function<BlockingQueue<DataProto.Item>, ImportWorker> workerConstructor;
@@ -202,7 +201,7 @@ public class DataImporter implements Migrator {
         private BlockingQueue<DataProto.Item> readFile() {
             BlockingQueue<DataProto.Item> queue = new ArrayBlockingQueue<>(1000);
             CompletableFuture.runAsync(() -> {
-                try (InputStream inputStream = new BufferedInputStream(Files.newInputStream(filename))) {
+                try (InputStream inputStream = new BufferedInputStream(Files.newInputStream(dataFile))) {
                     DataProto.Item item;
                     while ((item = ITEM_PARSER.parseDelimitedFrom(inputStream)) != null) {
                         queue.put(item);
@@ -218,7 +217,6 @@ public class DataImporter implements Migrator {
     private abstract class ImportWorker {
 
         private final Map<ByteArray, String> bufferedIIDsToOriginalIds;
-
         private final Map<String, ByteArray> originalIDsToBufferedIIDs;
         private final BlockingQueue<DataProto.Item> items;
         RocksTransaction transaction;
@@ -262,7 +260,7 @@ public class DataImporter implements Migrator {
             idMapper.put(originalID, iid);
         }
 
-        Thing getThing(String originalID) {
+        Thing importedThing(String originalID) {
             ByteArray newIID;
             if ((newIID = originalIDsToBufferedIIDs.get(originalID)) == null && (newIID = idMapper.get(originalID)) == null) {
                 throw TypeDBException.of(ILLEGAL_STATE);
@@ -278,10 +276,10 @@ public class DataImporter implements Migrator {
         }
 
         int insertOwnerships(String originalId, List<DataProto.Item.OwnedAttribute> ownedMsgs) {
-            Thing owner = getThing(originalId);
+            Thing owner = importedThing(originalId);
             int ownerships = 0;
             for (DataProto.Item.OwnedAttribute ownedMsg : ownedMsgs) {
-                Thing attrThing = getThing(ownedMsg.getId());
+                Thing attrThing = importedThing(ownedMsg.getId());
                 assert attrThing != null;
                 owner.setHas(attrThing.asAttribute());
                 ownerships++;
@@ -300,9 +298,9 @@ public class DataImporter implements Migrator {
         }
     }
 
-    private class InitAndAttributes extends ImportWorker {
+    private class AttributesAndChecksum extends ImportWorker {
 
-        InitAndAttributes(BlockingQueue<DataProto.Item> items) {
+        AttributesAndChecksum(BlockingQueue<DataProto.Item> items) {
             super(items);
         }
 
@@ -430,14 +428,14 @@ public class DataImporter implements Migrator {
                 RoleType roleType = getRoleType(relationType, roleMsg);
                 for (DataProto.Item.Relation.Role.Player playerMessage : roleMsg.getPlayerList()) {
                     if (!isImported(playerMessage.getId())) return Optional.empty();
-                    else players.add(new Pair<>(roleType, getThing(playerMessage.getId())));
+                    else players.add(new Pair<>(roleType, importedThing(playerMessage.getId())));
                 }
             }
             return Optional.of(players);
         }
     }
 
-    private void insertSkippedRelations() {
+    private void importSkippedRelations() {
         try (TypeDB.Transaction transaction = session.transaction(Arguments.Transaction.Type.WRITE)) {
             skippedRelations.forEach(relationMsg -> {
                 RelationType relationType = transaction.concepts().getRelationType(relabel(relationMsg.getLabel()));
