@@ -19,6 +19,7 @@
 package com.vaticle.typedb.core.common.iterator;
 
 import com.vaticle.typedb.core.common.exception.TypeDBException;
+import com.vaticle.typedb.core.common.iterator.FunctionalIterator.Sorted.Forwardable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -62,8 +63,8 @@ public abstract class AbstractFunctionalIterator<T> implements FunctionalIterato
     }
 
     @Override
-    public <U extends Comparable<U>> FunctionalIterator.Sorted.Forwardable<U> mergeMap(
-            Function<T, FunctionalIterator.Sorted.Forwardable<U>> mappingFn) {
+    public <U extends Comparable<U>> Forwardable<U> mergeMap(
+            Function<T, Forwardable<U>> mappingFn) {
         return new MergeMappedIterator.Forwardable<>(this, mappingFn);
     }
 

@@ -72,7 +72,7 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
         this.parameters = parameters;
         vertices = structure.vertices();
         edges = new ArrayList<>(structure.edges());
-        assert edges.stream().allMatch(edge -> edge.isNative() && edge.asNative().isRolePlayer());
+        assert iterate(edges).allMatch(edge -> edge.isNative() && edge.asNative().isRolePlayer());
         answer = new HashMap<>();
         iterators = new HashMap<>();
         scoped = new Scoped();
@@ -85,13 +85,21 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
     }
 
     private boolean tryInitialise() {
-        List<StructureVertex<?>> withoutIID = iterate(vertices)
-                .filter(vertex -> !parameters.withIID().contains(vertex.id().asVariable().asRetrievable())).toList();
-        assert withoutIID.size() == 1;
-        StructureVertex.Thing relationVertex = withoutIID.get(0).asThing();
+        StructureVertex.Thing relationVertex = relationVertex();
         assert relationVertex.asThing().props().types().size() == 1;
         relationId = relationVertex.id().asVariable().asRetrievable();
         relationType = graphMgr.schema().getType(relationVertex.props().types().iterator().next());
+        return tryInitialiseFixedPlayers();
+    }
+
+    private StructureVertex.Thing relationVertex() {
+        List<StructureVertex<?>> withoutIID = iterate(vertices)
+                .filter(vertex -> !parameters.withIID().contains(vertex.id().asVariable().asRetrievable())).toList();
+        assert withoutIID.size() == 1;
+        return withoutIID.get(0).asThing();
+    }
+
+    private boolean tryInitialiseFixedPlayers() {
         for (Identifier.Variable withIID : parameters.withIID()) {
             assert withIID.isRetrievable();
             ThingVertex thingVertex = graphMgr.data().getReadable(parameters.getIID(withIID));
@@ -117,6 +125,7 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
                 return true;
             case COMPLETED:
                 return false;
+            case PROPOSED:
             default:
                 throw TypeDBException.of(ILLEGAL_STATE);
         }

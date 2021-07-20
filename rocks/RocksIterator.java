@@ -41,7 +41,7 @@ public final class RocksIterator extends AbstractFunctionalIterator.Sorted<KeyVa
     private KeyValue<ByteArray, ByteArray> next;
     private boolean isClosed;
 
-    private enum State {INIT, EMPTY, SEEKED_EMPTY, FETCHED, COMPLETED}
+    private enum State {INIT, EMPTY, FORWARDED_EMPTY, FETCHED, COMPLETED}
 
     RocksIterator(RocksStorage storage, ByteArray prefix) {
         this.storage = storage;
@@ -78,7 +78,7 @@ public final class RocksIterator extends AbstractFunctionalIterator.Sorted<KeyVa
                 return true;
             case EMPTY:
                 return fetchAndCheck();
-            case SEEKED_EMPTY:
+            case FORWARDED_EMPTY:
                 return checkValidNext();
             case INIT:
                 return initialiseAndCheck();
@@ -91,7 +91,7 @@ public final class RocksIterator extends AbstractFunctionalIterator.Sorted<KeyVa
     public synchronized void forward(KeyValue<ByteArray, ByteArray> target) {
         if (state == State.INIT) initialise(target.key());
         else internalRocksIterator.seek(target.key().getBytes());
-        state = State.SEEKED_EMPTY;
+        state = State.FORWARDED_EMPTY;
     }
 
     private synchronized boolean fetchAndCheck() {
@@ -116,7 +116,7 @@ public final class RocksIterator extends AbstractFunctionalIterator.Sorted<KeyVa
         assert state == State.INIT;
         this.internalRocksIterator = storage.getInternalRocksIterator();
         this.internalRocksIterator.seek(prefix.getBytes());
-        state = State.SEEKED_EMPTY;
+        state = State.FORWARDED_EMPTY;
     }
 
     private synchronized boolean checkValidNext() {
