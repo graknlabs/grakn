@@ -56,8 +56,6 @@ public class MigratorService extends MigratorGrpc.MigratorImplBase {
         } catch (Throwable e) {
             LOG.error(e.getMessage(), e);
             responseObserver.onError(exception(e));
-        } finally {
-            exporter.close();
         }
     }
 
