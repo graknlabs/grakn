@@ -27,7 +27,6 @@ import com.vaticle.typedb.core.concept.thing.Entity;
 import com.vaticle.typedb.core.concept.thing.Relation;
 import com.vaticle.typedb.core.concept.thing.Thing;
 import com.vaticle.typedb.core.concept.type.RoleType;
-import com.vaticle.typedb.core.migrator.Migrator;
 import com.vaticle.typedb.core.migrator.proto.DataProto;
 import com.vaticle.typedb.core.migrator.proto.MigratorProto;
 import org.slf4j.Logger;
@@ -48,7 +47,7 @@ import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILL
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Migrator.DATABASE_NOT_FOUND;
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Migrator.FILE_NOT_WRITABLE;
 
-public class DataExporter implements Migrator {
+public class DataExporter {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataExporter.class);
     private final TypeDB typedb;
@@ -84,11 +83,6 @@ public class DataExporter implements Migrator {
                         .build();
     }
 
-    @Override
-    public void close() {
-    }
-
-    @Override
     public void run() {
         LOG.info("Exporting {} from TypeDB {}", database, version);
         try (OutputStream outputStream = new BufferedOutputStream(Files.newOutputStream(filename))) {

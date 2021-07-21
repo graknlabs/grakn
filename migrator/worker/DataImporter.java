@@ -33,7 +33,6 @@ import com.vaticle.typedb.core.concept.type.AttributeType;
 import com.vaticle.typedb.core.concept.type.EntityType;
 import com.vaticle.typedb.core.concept.type.RelationType;
 import com.vaticle.typedb.core.concept.type.RoleType;
-import com.vaticle.typedb.core.migrator.Migrator;
 import com.vaticle.typedb.core.migrator.proto.DataProto;
 import com.vaticle.typedb.core.migrator.proto.MigratorProto;
 import com.vaticle.typedb.core.rocks.RocksSession;
@@ -77,7 +76,7 @@ import static com.vaticle.typedb.core.common.exception.ErrorMessage.Migrator.TYP
 import static com.vaticle.typedb.core.migrator.proto.DataProto.Item.ItemCase.HEADER;
 import static java.util.Comparator.reverseOrder;
 
-public class DataImporter implements Migrator {
+public class DataImporter {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataImporter.class);
     private static final Parser<DataProto.Item> ITEM_PARSER = DataProto.Item.parser();
@@ -110,7 +109,6 @@ public class DataImporter implements Migrator {
         this.status = new Status();
     }
 
-    @Override
     public void run() {
         try {
             readHeader();
@@ -131,7 +129,6 @@ public class DataImporter implements Migrator {
         }
     }
 
-    @Override
     public void close() {
         session.close();
         idMapper.close();
