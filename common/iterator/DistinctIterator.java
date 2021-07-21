@@ -26,9 +26,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static com.vaticle.typedb.common.collection.Collections.list;
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_ARGUMENT;
-import static com.vaticle.typedb.core.common.iterator.Iterators.iterate;
 
 // TODO: verify (and potentially fix) this class is able to handle null objects
 class DistinctIterator<T> extends AbstractFunctionalIterator<T> {

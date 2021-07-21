@@ -27,9 +27,7 @@ import java.util.NoSuchElementException;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static com.vaticle.typedb.common.collection.Collections.list;
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_ARGUMENT;
-import static com.vaticle.typedb.core.common.iterator.Iterators.iterate;
 
 class BaseIterator<T> extends AbstractFunctionalIterator<T> {
 

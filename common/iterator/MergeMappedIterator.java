@@ -27,10 +27,8 @@ import java.util.PriorityQueue;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static com.vaticle.typedb.common.collection.Collections.list;
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_ARGUMENT;
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_STATE;
-import static com.vaticle.typedb.core.common.iterator.Iterators.iterate;
 
 class MergeMappedIterator<T, U extends Comparable<? super U>, ITER extends FunctionalIterator.Sorted<U>>
         extends AbstractFunctionalIterator.Sorted<U> {

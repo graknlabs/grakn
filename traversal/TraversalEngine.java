@@ -29,8 +29,6 @@ import com.vaticle.typedb.core.traversal.procedure.GraphProcedure;
 
 import java.util.Set;
 
-import static com.vaticle.typedb.common.collection.Collections.set;
-
 public class TraversalEngine {
 
     private final GraphManager graphMgr;
