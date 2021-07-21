@@ -134,7 +134,7 @@ public class Traversal {
     }
 
     FunctionalIterator<VertexMap> relations(GraphManager graphMgr) {
-        return new RelationIterator(this.structure, this.parameters, graphMgr);
+        return new RelationIterator(structure, parameters, graphMgr);
     }
 
     FunctionalProducer<VertexMap> producer(GraphManager graphMgr, Either<Arguments.Query.Producer, Long> context,
@@ -356,11 +356,11 @@ public class Traversal {
             values.computeIfAbsent(pair(identifier, predicate), k -> new HashSet<>()).add(value);
         }
 
-        public VertexIID.Thing getIdentifiersWithIID(Identifier.Variable identifier) {
+        public VertexIID.Thing getIID(Identifier.Variable identifier) {
             return iids.get(identifier);
         }
 
-        public Set<Identifier.Variable> withIID() {
+        public Set<Identifier.Variable> getIdentifiersWithIID() {
             return iids.keySet();
         }
 

@@ -21,6 +21,7 @@ package com.vaticle.typedb.core.traversal.iterator;
 import com.vaticle.typedb.core.common.exception.TypeDBException;
 import com.vaticle.typedb.core.common.iterator.AbstractFunctionalIterator;
 import com.vaticle.typedb.core.common.iterator.FunctionalIterator;
+import com.vaticle.typedb.core.common.iterator.FunctionalIterator.Sorted.Forwardable;
 import com.vaticle.typedb.core.common.parameters.Label;
 import com.vaticle.typedb.core.graph.GraphManager;
 import com.vaticle.typedb.core.graph.adjacency.ThingAdjacency;
@@ -58,14 +59,14 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
     private final Traversal.Parameters parameters;
     private final GraphManager graphMgr;
 
+    private final Map<Integer, Forwardable<ThingVertex>> iterators;
     private final Map<Retrievable, Vertex<?, ?>> answer;
-    private final Map<Integer, FunctionalIterator.Sorted.Forwardable<ThingVertex>> iterators;
     private final Scoped scoped;
     private Retrievable relationId;
     private TypeVertex relationType;
-    private int relationProposer;
     private ThingVertex relation;
     private State state;
+    private int relationProposer;
 
     private enum State { INIT, EMPTY, PROPOSED, FETCHED, COMPLETED }
 
@@ -130,15 +131,15 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
 
     private StructureVertex.Thing relationVertex() {
         List<StructureVertex<?>> withoutIID = iterate(vertices)
-                .filter(vertex -> !parameters.withIID().contains(vertex.id().asVariable().asRetrievable())).toList();
+                .filter(vertex -> !parameters.getIdentifiersWithIID().contains(vertex.id().asVariable().asRetrievable())).toList();
         assert withoutIID.size() == 1;
         return withoutIID.get(0).asThing();
     }
 
     private boolean tryInitialiseFixedPlayers() {
-        for (Identifier.Variable withIID : parameters.withIID()) {
+        for (Identifier.Variable withIID : parameters.getIdentifiersWithIID()) {
             assert withIID.isRetrievable();
-            ThingVertex thingVertex = graphMgr.data().getReadable(parameters.getIdentifiersWithIID(withIID));
+            ThingVertex thingVertex = graphMgr.data().getReadable(parameters.getIID(withIID));
             if (thingVertex == null) {
                 state = State.COMPLETED;
                 return false;
@@ -194,7 +195,7 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
     }
 
     private boolean verifyProposed(int edge) {
-        FunctionalIterator.Sorted.Forwardable<ThingVertex> relationIterator = getIterator(edge);
+        Forwardable<ThingVertex> relationIterator = getIterator(edge);
         if (!relationIterator.hasNext()) {
             state = State.COMPLETED;
             return false;
@@ -219,12 +220,12 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
         state = State.PROPOSED;
     }
 
-    private FunctionalIterator.Sorted.Forwardable<ThingVertex> getIterator(int edge) {
+    private Forwardable<ThingVertex> getIterator(int edge) {
         assert edges.get(edge).to().id().isRetrievable();
         return iterators.computeIfAbsent(edge, this::createIterator);
     }
 
-    private FunctionalIterator.Sorted.Forwardable<ThingVertex> createIterator(int edge) {
+    private Forwardable<ThingVertex> createIterator(int edge) {
         StructureEdge<?, ?> structureEdge = edges.get(edge);
         Retrievable playerId = structureEdge.to().id().asVariable().asRetrievable();
         ThingVertex player = answer.get(playerId).asThing();

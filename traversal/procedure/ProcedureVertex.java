@@ -208,7 +208,7 @@ public abstract class ProcedureVertex<
         FunctionalIterator<? extends ThingVertex> iterateAndFilterFromIID(GraphManager graphMgr, Traversal.Parameters parameters) {
             assert props().hasIID() && id().isVariable();
             Identifier.Variable id = id().asVariable();
-            FunctionalIterator<? extends ThingVertex> iter = single(graphMgr.data().getReadable(parameters.getIdentifiersWithIID(id))).noNulls();
+            FunctionalIterator<? extends ThingVertex> iter = single(graphMgr.data().getReadable(parameters.getIID(id))).noNulls();
             if (!props().types().isEmpty()) iter = filterTypes(iter);
             if (!props().predicates().isEmpty()) iter = filterPredicates(filterAttributes(iter), parameters);
             return iter;
@@ -236,13 +236,13 @@ public abstract class ProcedureVertex<
 
         FunctionalIterator<? extends ThingVertex> filterIID(FunctionalIterator<? extends ThingVertex> iterator,
                                                             Traversal.Parameters parameters) {
-            return iterator.filter(v -> v.iid().equals(parameters.getIdentifiersWithIID(id().asVariable())));
+            return iterator.filter(v -> v.iid().equals(parameters.getIID(id().asVariable())));
         }
 
         FunctionalIterator<ThingEdge> filterIIDOnEdge(FunctionalIterator<ThingEdge> iterator,
                                                       Traversal.Parameters parameters, boolean isForward) {
             Function<ThingEdge, ThingVertex> fn = e -> isForward ? e.to() : e.from();
-            return iterator.filter(e -> fn.apply(e).iid().equals(parameters.getIdentifiersWithIID(id().asVariable())));
+            return iterator.filter(e -> fn.apply(e).iid().equals(parameters.getIID(id().asVariable())));
         }
 
         FunctionalIterator<? extends ThingVertex> filterTypes(FunctionalIterator<? extends ThingVertex> iterator) {
