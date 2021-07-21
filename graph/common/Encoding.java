@@ -776,7 +776,9 @@ public class Encoding {
 
             int tailSize();
 
-            int lookAhead();
+            default int lookAhead() {
+                return tailSize() + 2;
+            }
 
             @Override
             default boolean isThing() {
@@ -788,16 +790,13 @@ public class Encoding {
                 return this;
             }
 
-
             enum Data implements Thing {
-
                 HAS(Infix.EDGE_HAS_OUT, Infix.EDGE_HAS_IN),
                 PLAYING(Infix.EDGE_PLAYING_OUT, Infix.EDGE_PLAYING_IN),
                 RELATING(Infix.EDGE_RELATING_OUT, Infix.EDGE_RELATING_IN);
 
-                final Infix out;
-                final Infix in;
-
+                private final Infix out;
+                private final Infix in;
 
                 Data(Infix out, Infix in) {
                     this.out = out;
@@ -823,21 +822,14 @@ public class Encoding {
                 public int tailSize() {
                     return 0;
                 }
-
-                @Override
-                public int lookAhead() {
-                    return 0;
-                }
             }
 
             enum Optimised implements Thing {
-
                 ROLEPLAYER(Infix.EDGE_ROLEPLAYER_OUT, Infix.EDGE_ROLEPLAYER_IN, 1);
 
+                private final Infix out;
+                private final Infix in;
                 private final int tailSize;
-                final Infix out;
-                final Infix in;
-
 
                 Optimised(Infix out, Infix in, int tailSize) {
                     this.out = out;
@@ -863,11 +855,6 @@ public class Encoding {
                 @Override
                 public int tailSize() {
                     return tailSize;
-                }
-
-                @Override
-                public int lookAhead() {
-                    return tailSize + 2;
                 }
             }
         }
