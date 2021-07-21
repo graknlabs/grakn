@@ -16,7 +16,7 @@
  *
  */
 
-package com.vaticle.typedb.core.migrator;
+package com.vaticle.typedb.core.migrator.worker;
 
 import com.google.protobuf.Parser;
 import com.vaticle.typedb.common.collection.ConcurrentSet;
@@ -33,6 +33,7 @@ import com.vaticle.typedb.core.concept.type.AttributeType;
 import com.vaticle.typedb.core.concept.type.EntityType;
 import com.vaticle.typedb.core.concept.type.RelationType;
 import com.vaticle.typedb.core.concept.type.RoleType;
+import com.vaticle.typedb.core.migrator.Migrator;
 import com.vaticle.typedb.core.migrator.proto.DataProto;
 import com.vaticle.typedb.core.migrator.proto.MigratorProto;
 import com.vaticle.typedb.core.rocks.RocksSession;
@@ -94,7 +95,7 @@ public class DataImporter implements Migrator {
     private final ConcurrentSet<DataProto.Item.Relation> skippedRelations;
     private Checksum checksum;
 
-    DataImporter(RocksTypeDB typedb, String database, Path dataFile, Map<String, String> remapLabels, String version) {
+    public DataImporter(RocksTypeDB typedb, String database, Path dataFile, Map<String, String> remapLabels, String version) {
         if (!Files.exists(dataFile)) throw TypeDBException.of(FILE_NOT_FOUND, dataFile);
         this.session = typedb.session(database, Arguments.Session.Type.DATA);
         this.dataFile = dataFile;
@@ -151,33 +152,26 @@ public class DataImporter implements Migrator {
         }
     }
 
-    @Override
-    public MigratorProto.Job.Progress getProgress() {
+    public MigratorProto.Import.Progress getProgress() {
         if (checksum != null) {
-            return MigratorProto.Job.Progress.newBuilder()
-                    .setImportProgress(
-                            MigratorProto.Job.ImportProgress.newBuilder()
-                                    .setInitialising(false)
-                                    .setAttributesCurrent(status.attributeCount.get())
-                                    .setEntitiesCurrent(status.entityCount.get())
-                                    .setRelationsCurrent(status.relationCount.get())
-                                    .setOwnershipsCurrent(status.ownershipCount.get())
-                                    .setRolesCurrent(status.roleCount.get())
-                                    .setAttributes(checksum.attributes)
-                                    .setEntities(checksum.entities)
-                                    .setRelations(checksum.relations)
-                                    .setOwnerships(checksum.ownerships)
-                                    .setRoles(checksum.roles)
-                                    .build()
-                    ).build();
+            return MigratorProto.Import.Progress.newBuilder()
+                    .setInitialising(false)
+                    .setAttributesCurrent(status.attributeCount.get())
+                    .setEntitiesCurrent(status.entityCount.get())
+                    .setRelationsCurrent(status.relationCount.get())
+                    .setOwnershipsCurrent(status.ownershipCount.get())
+                    .setRolesCurrent(status.roleCount.get())
+                    .setAttributes(checksum.attributes)
+                    .setEntities(checksum.entities)
+                    .setRelations(checksum.relations)
+                    .setOwnerships(checksum.ownerships)
+                    .setRoles(checksum.roles)
+                    .build();
         } else {
-            return MigratorProto.Job.Progress.newBuilder()
-                    .setImportProgress(
-                            MigratorProto.Job.ImportProgress.newBuilder()
-                                    .setInitialising(true)
-                                    .setAttributesCurrent(status.attributeCount.get())
-                                    .build()
-                    ).build();
+            return MigratorProto.Import.Progress.newBuilder()
+                    .setInitialising(true)
+                    .setAttributesCurrent(status.attributeCount.get())
+                    .build();
         }
     }
 

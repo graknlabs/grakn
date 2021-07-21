@@ -18,13 +18,13 @@
 
 package com.vaticle.typedb.core.migrator;
 
-import com.vaticle.typedb.core.migrator.proto.MigratorProto;
+//import com.vaticle.typedb.core.migrator.proto.MigratorProto;
 
 public interface Migrator {
 
     void run();
 
-    MigratorProto.Job.Progress getProgress();
+//    MigratorProto.Job.Progress getProgress();
 
     void close();
 }

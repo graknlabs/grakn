@@ -16,7 +16,7 @@
  *
  */
 
-package com.vaticle.typedb.core.migrator;
+package com.vaticle.typedb.core.migrator.worker;
 
 import com.vaticle.typedb.core.TypeDB;
 import com.vaticle.typedb.core.common.exception.TypeDBException;
@@ -27,6 +27,7 @@ import com.vaticle.typedb.core.concept.thing.Entity;
 import com.vaticle.typedb.core.concept.thing.Relation;
 import com.vaticle.typedb.core.concept.thing.Thing;
 import com.vaticle.typedb.core.concept.type.RoleType;
+import com.vaticle.typedb.core.migrator.Migrator;
 import com.vaticle.typedb.core.migrator.proto.DataProto;
 import com.vaticle.typedb.core.migrator.proto.MigratorProto;
 import org.slf4j.Logger;
@@ -54,6 +55,7 @@ public class DataExporter implements Migrator {
     private final String database;
     private final Path filename;
     private final String version;
+    // TODO create status class
     private final AtomicLong entityCount = new AtomicLong(0);
     private final AtomicLong relationCount = new AtomicLong(0);
     private final AtomicLong attributeCount = new AtomicLong(0);
@@ -63,7 +65,7 @@ public class DataExporter implements Migrator {
     private long totalAttributeCount = 0;
     private long totalRelationCount = 0;
 
-    DataExporter(TypeDB typedb, String database, Path filename, String version) {
+    public DataExporter(TypeDB typedb, String database, Path filename, String version) {
         if (!typedb.databases().contains(database)) throw TypeDBException.of(DATABASE_NOT_FOUND, database);
         this.typedb = typedb;
         this.database = database;
@@ -71,19 +73,15 @@ public class DataExporter implements Migrator {
         this.version = version;
     }
 
-    @Override
-    public MigratorProto.Job.Progress getProgress() {
-        return MigratorProto.Job.Progress.newBuilder()
-                .setExportProgress(
-                        MigratorProto.Job.ExportProgress.newBuilder()
-                                .setAttributesCurrent(attributeCount.get())
-                                .setEntitiesCurrent(entityCount.get())
-                                .setRelationsCurrent(relationCount.get())
-                                .setAttributes(totalAttributeCount)
-                                .setEntities(totalEntityCount)
-                                .setRelations(totalRelationCount)
-                                .build()
-                ).build();
+    public MigratorProto.Export.Progress getProgress() {
+        return MigratorProto.Export.Progress.newBuilder()
+                        .setAttributesCurrent(attributeCount.get())
+                        .setEntitiesCurrent(entityCount.get())
+                        .setRelationsCurrent(relationCount.get())
+                        .setAttributes(totalAttributeCount)
+                        .setEntities(totalEntityCount)
+                        .setRelations(totalRelationCount)
+                        .build();
     }
 
     @Override
@@ -102,6 +100,7 @@ public class DataExporter implements Migrator {
                 totalRelationCount = tx.concepts().getRootRelationType().getInstancesCount();
 
                 List<Runnable> workers = new ArrayList<>();
+                // TODO extract each of the RHS of -> into a method
                 workers.add(() -> tx.concepts().getRootEntityType().getInstances().forEachRemaining(entity -> {
                     DataProto.Item item = readEntity(entity);
                     write(outputStream, item);
@@ -116,6 +115,7 @@ public class DataExporter implements Migrator {
                 }));
                 workers.parallelStream().forEach(Runnable::run);
 
+                // TODO create a Status -> Checksum method
                 DataProto.Item checksums = DataProto.Item.newBuilder().setChecksums(
                         DataProto.Item.Checksums.newBuilder()
                                 .setEntityCount(entityCount.get())
@@ -129,6 +129,7 @@ public class DataExporter implements Migrator {
         } catch (IOException e) {
             throw TypeDBException.of(FILE_NOT_WRITABLE, filename.toString());
         }
+        // TODO print status.toString()
         LOG.info("Exported {} entities, {} attributes, {} relations ({} roles), {} ownerships",
                 entityCount.get(),
                 attributeCount.get(),
@@ -140,9 +141,9 @@ public class DataExporter implements Migrator {
     private DataProto.Item header() {
         return DataProto.Item.newBuilder().setHeader(
                 DataProto.Item.Header.newBuilder()
-                .setOriginalDatabase(database)
-                .setTypedbVersion(version)
-                .build()
+                        .setOriginalDatabase(database)
+                        .setTypedbVersion(version)
+                        .build()
         ).build();
     }
 

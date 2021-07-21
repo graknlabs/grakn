@@ -23,6 +23,8 @@ import com.vaticle.typedb.core.TypeDB;
 import com.vaticle.typedb.core.common.parameters.Arguments;
 import com.vaticle.typedb.core.common.parameters.Options.Database;
 import com.vaticle.typedb.core.migrator.proto.DataProto;
+import com.vaticle.typedb.core.migrator.worker.DataExporter;
+import com.vaticle.typedb.core.migrator.worker.DataImporter;
 import com.vaticle.typedb.core.rocks.RocksTypeDB;
 import com.vaticle.typedb.core.server.Version;
 import com.vaticle.typedb.core.test.integration.util.Util;

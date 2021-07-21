@@ -23,15 +23,16 @@ load("@vaticle_dependencies//distribution:deployment.bzl", "deployment")
 load("@vaticle_dependencies//builder/java:rules.bzl", "native_java_libraries")
 load("@stackb_rules_proto//java:java_grpc_compile.bzl", "java_grpc_compile")
 
-
 package(default_visibility = ["//visibility:private",])
 
 proto_library(
     name = "migrator-proto",
-    srcs = [
-        "proto/data.proto",
-        "proto/migrator.proto"
-    ],
+    srcs = ["migrator.proto"],
+)
+
+proto_library(
+    name = "migrator-data",
+    srcs = ["worker/data.proto"],
 )
 
 java_grpc_compile(
@@ -39,9 +40,14 @@ java_grpc_compile(
     deps = ["migrator-proto"],
 )
 
+java_grpc_compile(
+    name = "migrator-data-grpc-src",
+    deps = ["migrator-data"],
+)
+
 native_java_libraries(
     name = "migrator",
-    srcs = [":migrator-grpc-src"] + glob(["*.java", "*/*.java", "*/*/*.java"]),
+    srcs = [":migrator-grpc-src", ":migrator-data-grpc-src"] + glob(["*.java", "*/*.java", "*/*/*.java"]),
     deps = [
         # Internal dependencies
         "//common:common",

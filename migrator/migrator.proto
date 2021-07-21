@@ -27,38 +27,34 @@ option java_outer_classname = "MigratorProto";
 package migrator;
 
 service Migrator {
-    rpc exportData (ExportData.Req) returns (stream Job.Res);
-    rpc importData (ImportData.Req) returns (stream Job.Res);
+    rpc ExportData(Export.Req) returns (stream Export.Progress);
+    rpc ImportData(Import.Req) returns (stream Import.Progress);
 }
 
-message ExportData {
+message Export {
     message Req {
         string database = 1;
         string filename = 2;
     }
+
+    message Progress {
+        uint64 attributes_current = 1;
+        uint64 attributes = 2;
+        uint64 entities_current = 3;
+        uint64 entities = 4;
+        uint64 relations_current = 5;
+        uint64 relations = 6;
+    }
 }
 
-message ImportData {
+message Import {
     message Req {
         string database = 1;
         string filename = 2;
         map<string, string> remap_labels = 3;
     }
-}
-
-message Job {
-    message Res {
-        Progress progress = 1;
-    }
 
     message Progress {
-        oneof progress {
-            ExportProgress export_progress = 1;
-            ImportProgress import_progress = 2;
-        }
-    }
-
-    message ImportProgress {
         bool initialising = 1;
         uint64 attributes_current = 2;
         uint64 attributes = 3;
@@ -71,13 +67,5 @@ message Job {
         uint64 roles_current = 10;
         uint64 roles = 11;
     }
-
-    message ExportProgress {
-        uint64 attributes_current = 1;
-        uint64 attributes = 2;
-        uint64 entities_current = 3;
-        uint64 entities = 4;
-        uint64 relations_current = 5;
-        uint64 relations = 6;
-    }
 }
+
