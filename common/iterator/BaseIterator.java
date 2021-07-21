@@ -101,10 +101,9 @@ class BaseIterator<T> extends AbstractFunctionalIterator<T> {
             this.next = null;
         }
 
-        @SafeVarargs
         @Override
-        public final Forwardable<T> merge(Forwardable<T>... iterators) {
-            return Iterators.Sorted.merge(this, iterators);
+        public final Forwardable<T> merge(Forwardable<T> iterator) {
+            return Iterators.Sorted.merge(this, iterator);
         }
 
         @Override
@@ -125,6 +124,5 @@ class BaseIterator<T> extends AbstractFunctionalIterator<T> {
 
         @Override
         public void recycle() { }
-
     }
 }

@@ -145,11 +145,10 @@ public final class RocksIterator extends AbstractFunctionalIterator.Sorted<KeyVa
         }
     }
 
-    @SafeVarargs
     @Override
     public final FunctionalIterator.Sorted.Forwardable<KeyValue<ByteArray, ByteArray>> merge(
-            FunctionalIterator.Sorted.Forwardable<KeyValue<ByteArray, ByteArray>>... iterators) {
-        return Iterators.Sorted.merge(this, iterators);
+            FunctionalIterator.Sorted.Forwardable<KeyValue<ByteArray, ByteArray>> iterator) {
+        return Iterators.Sorted.merge(this, iterator);
     }
 
     @Override

@@ -300,7 +300,6 @@ public abstract class ThingEdgeImpl implements ThingEdge {
         public void isInferred(boolean isInferred) {
             throw TypeDBException.of(ILLEGAL_OPERATION);
         }
-
     }
 
     public static class Persisted extends ThingEdgeImpl implements ThingEdge {

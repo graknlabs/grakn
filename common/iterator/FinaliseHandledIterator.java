@@ -110,10 +110,9 @@ class FinaliseHandledIterator<T> extends AbstractFunctionalIterator<T> implement
                 iterator.forward(target);
             }
 
-            @SafeVarargs
             @Override
-            public final FunctionalIterator.Sorted.Forwardable<T> merge(FunctionalIterator.Sorted.Forwardable<T>... iterators) {
-                return Iterators.Sorted.merge(this, iterators);
+            public final FunctionalIterator.Sorted.Forwardable<T> merge(FunctionalIterator.Sorted.Forwardable<T> iterator) {
+                return Iterators.Sorted.merge(this, iterator);
             }
 
             @Override
@@ -131,7 +130,6 @@ class FinaliseHandledIterator<T> extends AbstractFunctionalIterator<T> implement
             public FunctionalIterator.Sorted.Forwardable<T> filter(Predicate<T> predicate) {
                 return Iterators.Sorted.filter(this, predicate);
             }
-
         }
     }
 }

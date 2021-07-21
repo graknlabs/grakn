@@ -154,10 +154,9 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
                 state = State.EMPTY;
             }
 
-            @SafeVarargs
             @Override
-            public final FunctionalIterator.Sorted.Forwardable<U> merge(FunctionalIterator.Sorted.Forwardable<U>... iterators) {
-                return Iterators.Sorted.merge(this, iterators);
+            public final FunctionalIterator.Sorted.Forwardable<U> merge(FunctionalIterator.Sorted.Forwardable<U> iterator) {
+                return Iterators.Sorted.merge(this, iterator);
             }
 
             @Override
@@ -175,7 +174,6 @@ class MappedIterator<T, U> extends AbstractFunctionalIterator<U> {
             public FunctionalIterator.Sorted.Forwardable<U> filter(Predicate<U> predicate) {
                 return Iterators.Sorted.filter(this, predicate);
             }
-
         }
     }
 }

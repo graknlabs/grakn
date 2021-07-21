@@ -227,7 +227,8 @@ public class ThingGraph {
                         vertex -> KeyValue.of(join(prefix, vertex.iid().bytes()), ByteArray.empty()));
         if (!thingsByTypeIID.containsKey(typeVertex.iid())) return storageIterator;
         else {
-            FunctionalIterator.Sorted<ThingVertex> buffered = iterateSorted(thingsByTypeIID.get(typeVertex.iid())).mapSorted(e -> e, ThingVertex::toWrite);
+            FunctionalIterator.Sorted<ThingVertex> buffered = iterateSorted(thingsByTypeIID.get(typeVertex.iid()))
+                    .mapSorted(e -> e, ThingVertex::toWrite);
             return storageIterator.merge(buffered).distinct();
         }
     }
