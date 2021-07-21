@@ -46,6 +46,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 import static com.vaticle.typedb.core.common.exception.ErrorMessage.Internal.ILLEGAL_STATE;
@@ -104,6 +105,7 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
 
     @Override
     public VertexMap next() {
+        if (!hasNext()) throw new NoSuchElementException();
         VertexMap vertexMap = VertexMap.of(answer);
         state = State.EMPTY;
         return vertexMap;
