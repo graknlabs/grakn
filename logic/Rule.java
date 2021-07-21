@@ -45,7 +45,8 @@ import com.vaticle.typedb.core.pattern.variable.ThingVariable;
 import com.vaticle.typedb.core.pattern.variable.TypeVariable;
 import com.vaticle.typedb.core.pattern.variable.Variable;
 import com.vaticle.typedb.core.pattern.variable.VariableRegistry;
-import com.vaticle.typedb.core.traversal.Traversal;
+import com.vaticle.typedb.core.traversal.GraphTraversal;
+import com.vaticle.typedb.core.traversal.RelationTraversal;
 import com.vaticle.typedb.core.traversal.TraversalEngine;
 import com.vaticle.typedb.core.traversal.common.Identifier;
 import com.vaticle.typeql.lang.pattern.Pattern;
@@ -560,7 +561,7 @@ public class Rule {
             private FunctionalIterator<com.vaticle.typedb.core.concept.thing.Relation> matchRelation(
                     RelationType relationType, ConceptMap whenConcepts,
                     TraversalEngine traversalEng, ConceptManager conceptMgr) {
-                Traversal traversal = new Traversal();
+                RelationTraversal traversal = new RelationTraversal();
                 Identifier.Variable.Retrievable relationId = relation().owner().id();
                 traversal.types(relationId, set(relationType.getLabel()));
                 relation().players().forEach(rp -> {

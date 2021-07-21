@@ -31,7 +31,8 @@ import com.vaticle.typedb.core.graph.iid.PrefixIID;
 import com.vaticle.typedb.core.graph.vertex.ThingVertex;
 import com.vaticle.typedb.core.graph.vertex.TypeVertex;
 import com.vaticle.typedb.core.graph.vertex.Vertex;
-import com.vaticle.typedb.core.traversal.Traversal;
+import com.vaticle.typedb.core.traversal.GraphTraversal;
+import com.vaticle.typedb.core.traversal.RelationTraversal;
 import com.vaticle.typedb.core.traversal.common.Identifier;
 import com.vaticle.typedb.core.traversal.common.Identifier.Variable.Retrievable;
 import com.vaticle.typedb.core.traversal.common.VertexMap;
@@ -57,7 +58,7 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
 
     private final Collection<StructureVertex<?>> vertices;
     private final List<StructureEdge<?, ?>> edges;
-    private final Traversal.Parameters parameters;
+    private final GraphTraversal.Parameters parameters;
     private final GraphManager graphMgr;
 
     private final Map<Integer, Forwardable<ThingVertex>> iterators;
@@ -71,12 +72,11 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
 
     private enum State { INIT, EMPTY, PROPOSED, FETCHED, COMPLETED }
 
-    public RelationIterator(Structure structure, Traversal.Parameters parameters, GraphManager graphMgr) {
+    public RelationIterator(RelationTraversal traversal, GraphManager graphMgr) {
         this.graphMgr = graphMgr;
-        this.parameters = parameters;
-        vertices = structure.vertices();
-        edges = new ArrayList<>(structure.edges());
-        assert iterate(edges).allMatch(edge -> edge.isNative() && edge.asNative().isRolePlayer());
+        this.parameters = traversal.parameters();
+        vertices = traversal.structure().vertices();
+        edges = new ArrayList<>(traversal.structure().edges());
         answer = new HashMap<>();
         iterators = new HashMap<>();
         scoped = new Scoped();
