@@ -156,7 +156,7 @@ public abstract class TypeAdjacencyImpl implements TypeAdjacency {
 
             ByteArray iid = join(owner.iid().bytes(), direction.isOut() ? encoding.out().bytes() : encoding.in().bytes());
             FunctionalIterator<TypeEdge> storageIterator = owner.graph().storage().iterate(iid)
-                    .map(keyValue -> cache(newPersistedEdge(keyValue.key(), keyValue.value())));
+                    .map(kv -> cache(newPersistedEdge(kv.key(), kv.value())));
             if (isReadOnly) storageIterator = storageIterator.onConsumed(() -> fetched.add(encoding));
             if ((bufferedEdges = edges.get(encoding)) == null) return storageIterator;
             else return link(bufferedEdges.iterator(), storageIterator).distinct();

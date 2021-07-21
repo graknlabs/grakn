@@ -158,21 +158,18 @@ public interface ThingAdjacency {
         public abstract EdgeIID.Thing iid();
 
         public static DirectedEdge in(ThingEdge edge) {
-            EdgeIID.Thing inIID = edge.inIID();
-            return new DirectedEdge(edge) {
-                @Override
-                public EdgeIID.Thing iid() {
-                    return inIID;
-                }
-            };
+            return directedEdge(edge, edge.inIID());
         }
 
         public static DirectedEdge out(ThingEdge edge) {
-            EdgeIID.Thing outIID = edge.outIID();
+            return directedEdge(edge, edge.outIID());
+        }
+
+        private static DirectedEdge directedEdge(ThingEdge edge, EdgeIID.Thing iid) {
             return new DirectedEdge(edge) {
                 @Override
                 public EdgeIID.Thing iid() {
-                    return outIID;
+                    return iid;
                 }
             };
         }
