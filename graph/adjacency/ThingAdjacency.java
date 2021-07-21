@@ -37,7 +37,7 @@ public interface ThingAdjacency {
      * @param encoding the {@code Encoding} to filter the type of edges
      * @return an {@code SortedIteratorBuilder} to retrieve vertices of a set of edges.
      */
-    SortedIteratorBuilder edge(Encoding.Edge.Thing.Data encoding, IID... lookAhead);
+    SortedIteratorBuilder edge(Encoding.Edge.Thing.Base encoding, IID... lookAhead);
 
     SortedIteratorBuilder edge(Encoding.Edge.Thing.Optimised encoding, TypeVertex roleType, IID... lookAhead);
 

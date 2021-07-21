@@ -21,7 +21,6 @@ package com.vaticle.typedb.core.graph.common;
 import com.vaticle.typedb.common.collection.Pair;
 import com.vaticle.typedb.core.common.collection.ByteArray;
 import com.vaticle.typedb.core.common.exception.TypeDBException;
-import com.vaticle.typedb.core.common.iterator.FunctionalIterator;
 import com.vaticle.typedb.core.common.parameters.Label;
 import com.vaticle.typeql.lang.common.TypeQLArg;
 
@@ -743,7 +742,6 @@ public class Encoding {
             public Type asType() {
                 return this;
             }
-
         }
 
         interface Thing extends Edge {
@@ -753,12 +751,12 @@ public class Encoding {
             }
 
             static Thing of(byte infix) {
-                if (Data.HAS.out.key == infix || Data.HAS.in.key == infix) {
-                    return Data.HAS;
-                } else if (Data.PLAYING.out.key == infix || Data.PLAYING.in.key == infix) {
-                    return Data.PLAYING;
-                } else if (Data.RELATING.out.key == infix || Data.RELATING.in.key == infix) {
-                    return Data.RELATING;
+                if (Base.HAS.out.key == infix || Base.HAS.in.key == infix) {
+                    return Base.HAS;
+                } else if (Base.PLAYING.out.key == infix || Base.PLAYING.in.key == infix) {
+                    return Base.PLAYING;
+                } else if (Base.RELATING.out.key == infix || Base.RELATING.in.key == infix) {
+                    return Base.RELATING;
                 } else if (Optimised.ROLEPLAYER.out.key == infix || Optimised.ROLEPLAYER.in.key == infix) {
                     return Optimised.ROLEPLAYER;
                 } else {
@@ -790,7 +788,7 @@ public class Encoding {
                 return this;
             }
 
-            enum Data implements Thing {
+            enum Base implements Thing { // TODO name could be improved
                 HAS(Infix.EDGE_HAS_OUT, Infix.EDGE_HAS_IN),
                 PLAYING(Infix.EDGE_PLAYING_OUT, Infix.EDGE_PLAYING_IN),
                 RELATING(Infix.EDGE_RELATING_OUT, Infix.EDGE_RELATING_IN);
@@ -798,7 +796,7 @@ public class Encoding {
                 private final Infix out;
                 private final Infix in;
 
-                Data(Infix out, Infix in) {
+                Base(Infix out, Infix in) {
                     this.out = out;
                     this.in = in;
                 }

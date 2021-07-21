@@ -163,7 +163,7 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
         }
 
         @Override
-        public SortedIteratorBuilder edge(Encoding.Edge.Thing.Data encoding, IID... lookAhead) {
+        public SortedIteratorBuilder edge(Encoding.Edge.Thing.Base encoding, IID... lookAhead) {
             return new SortedIteratorBuilderImpl(encoding, null, edgeIteratorSorted(encoding, lookAhead));
         }
 
@@ -329,7 +329,7 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
         @Override
         public ThingEdgeImpl put(Encoding.Edge.Thing encoding, ThingVertex.Write adjacent, boolean isInferred) {
             assert !encoding.isOptimisation();
-            if (encoding == Encoding.Edge.Thing.Data.HAS && direction.isOut() && !isInferred) {
+            if (encoding == Encoding.Edge.Thing.Base.HAS && direction.isOut() && !isInferred) {
                 owner.graph().stats().hasEdgeCreated(owner.iid(), adjacent.iid().asAttribute());
             }
             ThingEdgeImpl edge = direction.isOut()
@@ -369,7 +369,7 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
 
         @Override
         public void deleteAll() {
-            iterate(Encoding.Edge.Thing.Data.values()).forEachRemaining(this::delete);
+            iterate(Encoding.Edge.Thing.Base.values()).forEachRemaining(this::delete);
             iterate(Encoding.Edge.Thing.Optimised.values()).forEachRemaining(this::delete);
         }
 
@@ -386,7 +386,7 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
             }
 
             @Override
-            public SortedIteratorBuilder edge(Encoding.Edge.Thing.Data encoding, IID... lookahead) {
+            public SortedIteratorBuilder edge(Encoding.Edge.Thing.Base encoding, IID... lookahead) {
                 return new SortedIteratorBuilderImpl(encoding, null, bufferedEdgeIterator(encoding, lookahead));
             }
 
@@ -446,7 +446,7 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
             }
 
             @Override
-            public SortedIteratorBuilder edge(Encoding.Edge.Thing.Data encoding, IID... lookahead) {
+            public SortedIteratorBuilder edge(Encoding.Edge.Thing.Base encoding, IID... lookahead) {
                 return new SortedIteratorBuilderImpl(encoding, null, edgeIteratorSorted(encoding, lookahead));
             }
 
