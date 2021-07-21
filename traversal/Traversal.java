@@ -134,8 +134,7 @@ public class Traversal {
     }
 
     FunctionalIterator<VertexMap> relations(GraphManager graphMgr) {
-        RelationIterator relationIterator = new RelationIterator(this.structure, this.parameters, graphMgr);
-        return relationIterator;
+        return new RelationIterator(this.structure, this.parameters, graphMgr);
     }
 
     FunctionalProducer<VertexMap> producer(GraphManager graphMgr, Either<Arguments.Query.Producer, Long> context,
@@ -340,29 +339,29 @@ public class Traversal {
 
     public static class Parameters {
 
-        private final Map<Identifier.Variable, VertexIID.Thing> iid;
+        private final Map<Identifier.Variable, VertexIID.Thing> iids;
         private final Map<Pair<Identifier.Variable, Predicate.Value<?>>, Set<Value>> values;
 
         public Parameters() {
-            iid = new HashMap<>();
+            iids = new HashMap<>();
             values = new HashMap<>();
         }
 
         public void putIID(Identifier.Variable identifier, VertexIID.Thing iid) {
-            assert !this.iid.containsKey(identifier);
-            this.iid.put(identifier, iid);
+            assert !this.iids.containsKey(identifier);
+            this.iids.put(identifier, iid);
         }
 
         public void pushValue(Identifier.Variable identifier, Predicate.Value<?> predicate, Value value) {
             values.computeIfAbsent(pair(identifier, predicate), k -> new HashSet<>()).add(value);
         }
 
-        public VertexIID.Thing getIID(Identifier.Variable identifier) {
-            return iid.get(identifier);
+        public VertexIID.Thing getIdentifiersWithIID(Identifier.Variable identifier) {
+            return iids.get(identifier);
         }
 
         public Set<Identifier.Variable> withIID() {
-            return iid.keySet();
+            return iids.keySet();
         }
 
         public Set<Value> getValues(Identifier.Variable identifier, Predicate.Value<?> predicate) {
@@ -372,7 +371,7 @@ public class Traversal {
         @Override
         public String toString() {
             StringBuilder str = new StringBuilder().append("Parameters: {");
-            if (!iid.isEmpty()) str.append("\n\tiid: ").append(iid);
+            if (!iids.isEmpty()) str.append("\n\tiid: ").append(iids);
             if (!values.isEmpty()) str.append("\n\tvalues: ").append(values);
             str.append("\n}");
             return str.toString();
@@ -385,12 +384,12 @@ public class Traversal {
 
             Parameters that = (Parameters) o;
 
-            return iid.equals(that.iid) && values.equals(that.values);
+            return iids.equals(that.iids) && values.equals(that.values);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(iid, values);
+            return Objects.hash(iids, values);
         }
 
         public static class Value {

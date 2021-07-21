@@ -138,7 +138,7 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
     private boolean tryInitialiseFixedPlayers() {
         for (Identifier.Variable withIID : parameters.withIID()) {
             assert withIID.isRetrievable();
-            ThingVertex thingVertex = graphMgr.data().getReadable(parameters.getIID(withIID));
+            ThingVertex thingVertex = graphMgr.data().getReadable(parameters.getIdentifiersWithIID(withIID));
             if (thingVertex == null) {
                 state = State.COMPLETED;
                 return false;

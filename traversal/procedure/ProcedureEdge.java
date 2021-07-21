@@ -749,7 +749,7 @@ public abstract class ProcedureEdge<
                         ThingVertex owner = fromVertex.asThing();
                         if (to.props().hasIID()) {
                             assert to.id().isVariable();
-                            VertexIID.Thing iid = params.getIID(to.id().asVariable());
+                            VertexIID.Thing iid = params.getIdentifiersWithIID(to.id().asVariable());
                             AttributeVertex<?> att;
                             if (!iid.isAttribute()) att = null;
                             else att = graphMgr.data().getReadable(iid.asAttribute());
@@ -801,7 +801,7 @@ public abstract class ProcedureEdge<
                         AttributeVertex<?> att = fromVertex.asThing().asAttribute();
 
                         if (to.props().hasIID()) {
-                            iter = backwardBranchToIIDFiltered(graphMgr, att, HAS, params.getIID(to.id().asVariable()), to.props().types());
+                            iter = backwardBranchToIIDFiltered(graphMgr, att, HAS, params.getIdentifiersWithIID(to.id().asVariable()), to.props().types());
                         } else if (!to.props().types().isEmpty()) {
                             iter = iterate(to.props().types()).map(l -> graphMgr.schema().getType(l)).noNulls()
                                     .flatMap(t -> att.ins().edge(HAS, PrefixIID.of(t.encoding().instance()), t.iid()).from());
@@ -864,7 +864,7 @@ public abstract class ProcedureEdge<
 
                         if (to.props().hasIID()) {
                             assert to.id().isVariable();
-                            iter = backwardBranchToIIDFiltered(graphMgr, role, PLAYING, params.getIID(to.id().asVariable()), toTypes);
+                            iter = backwardBranchToIIDFiltered(graphMgr, role, PLAYING, params.getIdentifiersWithIID(to.id().asVariable()), toTypes);
                         } else if (!toTypes.isEmpty()) {
                             iter = iterate(toTypes).map(l -> graphMgr.schema().getType(l)).noNulls()
                                     .flatMap(t -> role.ins().edge(PLAYING, PrefixIID.of(t.encoding().instance()), t.iid()).from());
@@ -930,7 +930,7 @@ public abstract class ProcedureEdge<
 
                         if (to.props().hasIID()) {
                             assert to.id().isVariable();
-                            iter = backwardBranchToIIDFiltered(graphMgr, role, RELATING, params.getIID(to.id().asVariable()), toTypes);
+                            iter = backwardBranchToIIDFiltered(graphMgr, role, RELATING, params.getIdentifiersWithIID(to.id().asVariable()), toTypes);
                         } else if (!toTypes.isEmpty()) {
                             iter = iterate(toTypes).map(l -> graphMgr.schema().getType(l)).noNulls()
                                     .flatMap(t -> role.ins().edge(RELATING, PrefixIID.of(RELATION), t.iid()).from());
@@ -1034,7 +1034,7 @@ public abstract class ProcedureEdge<
                             if (to.props().hasIID()) {
                                 assert to.id().isVariable();
                                 filteredIID = true;
-                                ThingVertex player = graphMgr.data().getReadable(params.getIID(to.id().asVariable()));
+                                ThingVertex player = graphMgr.data().getReadable(params.getIdentifiersWithIID(to.id().asVariable()));
                                 if (player == null) return empty();
                                 // TODO: the following code can be optimised if we have an API to directly get the
                                 //       roleplayer edge when we have the roleplayer vertex
@@ -1107,7 +1107,7 @@ public abstract class ProcedureEdge<
                             if (to.props().hasIID()) {
                                 assert to.id().isVariable();
                                 filteredIID = true;
-                                ThingVertex relation = graphMgr.data().getReadable(params.getIID(to.id().asVariable()));
+                                ThingVertex relation = graphMgr.data().getReadable(params.getIdentifiersWithIID(to.id().asVariable()));
                                 if (relation == null) return empty();
                                 iter = resolveRoleTypesIter.flatMap(
                                         rt -> player.ins()
