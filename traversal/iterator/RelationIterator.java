@@ -240,7 +240,7 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
                             scoped.record(edge, role);
                             return directedEdge.getEdge().from();
                         }, vertex -> {
-                            ThingEdge target = new ThingEdgeImpl.Virtual(ROLEPLAYER, vertex, answer.get(playerId).asThing(), rt);
+                            ThingEdge target = new ThingEdgeImpl.Target(ROLEPLAYER, vertex, answer.get(playerId).asThing(), rt);
                             return ThingAdjacency.DirectedEdge.in(target);
                         });
     }

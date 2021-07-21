@@ -113,14 +113,14 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
             return direction.isOut() ?
                     directedEdges.mapSorted(sortable -> sortable.getEdge().from()).distinct() :
                     directedEdges.mapSorted(sortable -> sortable.getEdge().from(),
-                            vertex -> asDirected(new ThingEdgeImpl.Virtual(encoding, owner(), vertex, optimisedType)));
+                            vertex -> asDirected(new ThingEdgeImpl.Target(encoding, owner(), vertex, optimisedType)));
         }
 
         @Override
         public FunctionalIterator.Sorted<ThingVertex> to() {
             return direction.isOut() ?
                     directedEdges.mapSorted(sortable -> sortable.getEdge().to(),
-                            vertex -> asDirected(new ThingEdgeImpl.Virtual(encoding, owner(), vertex, optimisedType))) :
+                            vertex -> asDirected(new ThingEdgeImpl.Target(encoding, owner(), vertex, optimisedType))) :
                     directedEdges.mapSorted(sortable -> sortable.getEdge().to()).distinct();
         }
 

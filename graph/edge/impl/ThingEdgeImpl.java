@@ -222,13 +222,13 @@ public abstract class ThingEdgeImpl implements ThingEdge {
         }
     }
 
-    public static class Virtual extends ThingEdgeImpl implements ThingEdge {
+    public static class Target extends ThingEdgeImpl implements ThingEdge {
 
         private final ThingVertex from;
         private final ThingVertex to;
         private final TypeVertex optimisedType;
 
-        public Virtual(Encoding.Edge.Thing encoding, ThingVertex from, ThingVertex to, @Nullable TypeVertex optimisedType) {
+        public Target(Encoding.Edge.Thing encoding, ThingVertex from, ThingVertex to, @Nullable TypeVertex optimisedType) {
             super(from.graph(), encoding, false);
             this.optimisedType = optimisedType;
             assert !encoding.isOptimisation() || optimisedType != null;

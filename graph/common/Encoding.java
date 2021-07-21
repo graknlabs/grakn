@@ -696,7 +696,6 @@ public class Encoding {
             public String toString() {
                 return name();
             }
-
         };
 
         enum Type implements Edge {
@@ -788,7 +787,7 @@ public class Encoding {
                 return this;
             }
 
-            enum Base implements Thing { // TODO name could be improved
+            enum Base implements Thing { // TODO: name could be improved
                 HAS(Infix.EDGE_HAS_OUT, Infix.EDGE_HAS_IN),
                 PLAYING(Infix.EDGE_PLAYING_OUT, Infix.EDGE_PLAYING_IN),
                 RELATING(Infix.EDGE_RELATING_OUT, Infix.EDGE_RELATING_IN);
