@@ -746,106 +746,128 @@ public class Encoding {
 
         }
 
-        abstract class Thing implements Edge {
+        interface Thing extends Edge {
 
-            private final String name;
-            private final boolean isOptimisation;
-            private final int tailSize;
-            final Infix out;
-            final Infix in;
-
-            Thing(String name, Infix out, Infix in, boolean isOptimisation, int tailSize) {
-                this.name = name;
-                this.out = out;
-                this.in = in;
-                this.isOptimisation = isOptimisation;
-                this.tailSize = tailSize;
-                assert out == null || out.isOptimisation() == isOptimisation;
-                assert in == null || in.isOptimisation() == isOptimisation;
-            }
-
-            public static Thing of(Infix infix) {
+            static Thing of(Infix infix) {
                 return of(infix.key);
             }
 
-            public static FunctionalIterator<Thing> values() {
-                return iterate(Data.HAS, Data.RELATING, Data.PLAYING, Optimised.ROLEPLAYER);
-            }
-
-            public static Thing of(byte infix) {
-                if ((Data.HAS.out != null && Data.HAS.out.key == infix)
-                        || (Data.HAS.in != null && Data.HAS.in.key == infix)) {
+            static Thing of(byte infix) {
+                if (Data.HAS.out.key == infix || Data.HAS.in.key == infix) {
                     return Data.HAS;
-                } else if ((Data.PLAYING.out != null && Data.PLAYING.out.key == infix)
-                        || (Data.PLAYING.in != null && Data.PLAYING.in.key == infix)) {
+                } else if (Data.PLAYING.out.key == infix || Data.PLAYING.in.key == infix) {
                     return Data.PLAYING;
-                } else if ((Data.RELATING.out != null && Data.RELATING.out.key == infix)
-                        || (Data.RELATING.in != null && Data.RELATING.in.key == infix)) {
+                } else if (Data.RELATING.out.key == infix || Data.RELATING.in.key == infix) {
                     return Data.RELATING;
-                } else if ((Optimised.ROLEPLAYER.out != null && Optimised.ROLEPLAYER.out.key == infix)
-                        || (Optimised.ROLEPLAYER.in != null && Optimised.ROLEPLAYER.in.key == infix)) {
+                } else if (Optimised.ROLEPLAYER.out.key == infix || Optimised.ROLEPLAYER.in.key == infix) {
                     return Optimised.ROLEPLAYER;
                 } else {
                     throw TypeDBException.of(UNRECOGNISED_VALUE);
                 }
             }
 
-            @Override
-            public Infix out() {
-                return out;
-            }
+            String name();
+
+            Infix in();
+
+            Infix out();
+
+            boolean isOptimisation();
+
+            int tailSize();
+
+            int lookAhead();
 
             @Override
-            public Infix in() {
-                return in;
-            }
-
-            @Override
-            public boolean isOptimisation() {
-                return isOptimisation;
-            }
-
-            @Override
-            public boolean isThing() {
+            default boolean isThing() {
                 return true;
             }
 
             @Override
-            public Thing asThing() {
+            default Thing asThing() {
                 return this;
             }
 
-            @Override
-            public String name() {
-                return name;
-            }
 
-            public int tailSize() {
-                return tailSize;
-            }
+            enum Data implements Thing {
 
-            public int lookAhead() {
-                return tailSize + 2;
-            }
+                HAS(Infix.EDGE_HAS_OUT, Infix.EDGE_HAS_IN),
+                PLAYING(Infix.EDGE_PLAYING_OUT, Infix.EDGE_PLAYING_IN),
+                RELATING(Infix.EDGE_RELATING_OUT, Infix.EDGE_RELATING_IN);
 
-            public static class Data extends Thing {
-                public static Data HAS = new Data("HAS", Infix.EDGE_HAS_OUT, Infix.EDGE_HAS_IN);
-                public static Data PLAYING = new Data("PLAYING", Infix.EDGE_PLAYING_OUT, Infix.EDGE_PLAYING_IN);
-                public static Data RELATING = new Data("RELATING", Infix.EDGE_RELATING_OUT, Infix.EDGE_RELATING_IN);
+                final Infix out;
+                final Infix in;
 
-                public Data(String name, Infix out, Infix in) {
-                    super(name, out, in, false, 0);
+
+                Data(Infix out, Infix in) {
+                    this.out = out;
+                    this.in = in;
+                }
+
+                @Override
+                public Infix in() {
+                    return in;
+                }
+
+                @Override
+                public Infix out() {
+                    return out;
+                }
+
+                @Override
+                public boolean isOptimisation() {
+                    return false;
+                }
+
+                @Override
+                public int tailSize() {
+                    return 0;
+                }
+
+                @Override
+                public int lookAhead() {
+                    return 0;
                 }
             }
 
-            public static class Optimised extends Thing {
+            enum Optimised implements Thing {
 
-                public static Optimised ROLEPLAYER = new Optimised(
-                        "ROLEPLAYER", Infix.EDGE_ROLEPLAYER_OUT, Infix.EDGE_ROLEPLAYER_IN, true, 1
-                );
+                ROLEPLAYER(Infix.EDGE_ROLEPLAYER_OUT, Infix.EDGE_ROLEPLAYER_IN, 1);
 
-                Optimised(String name, Infix out, Infix in, boolean isOptimisation, int tailSize) {
-                    super(name, out, in, isOptimisation, tailSize);
+                private final int tailSize;
+                final Infix out;
+                final Infix in;
+
+
+                Optimised(Infix out, Infix in, int tailSize) {
+                    this.out = out;
+                    this.in = in;
+                    this.tailSize = tailSize;
+                }
+
+                @Override
+                public Infix in() {
+                    return in;
+                }
+
+                @Override
+                public Infix out() {
+                    return out;
+                }
+
+                @Override
+                public boolean isOptimisation() {
+                    return true;
+                }
+
+                @Override
+                public int tailSize() {
+                    return tailSize;
+                }
+
+                @Override
+                public int lookAhead() {
+                    return tailSize + 2;
                 }
             }
         }

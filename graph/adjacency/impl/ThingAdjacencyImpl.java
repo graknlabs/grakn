@@ -369,7 +369,8 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
 
         @Override
         public void deleteAll() {
-            Encoding.Edge.Thing.values().forEachRemaining(this::delete);
+            iterate(Encoding.Edge.Thing.Data.values()).forEachRemaining(this::delete);
+            iterate(Encoding.Edge.Thing.Optimised.values()).forEachRemaining(this::delete);
         }
 
         @Override
