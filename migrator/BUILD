@@ -32,7 +32,7 @@ proto_library(
 
 proto_library(
     name = "migrator-data",
-    srcs = ["worker/data.proto"],
+    srcs = ["data/data.proto"],
 )
 
 java_grpc_compile(

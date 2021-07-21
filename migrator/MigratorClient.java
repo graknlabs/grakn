@@ -20,8 +20,6 @@ package com.vaticle.typedb.core.migrator;
 
 import com.vaticle.typedb.core.common.exception.ErrorMessage;
 import com.vaticle.typedb.core.common.exception.TypeDBException;
-import com.vaticle.typedb.core.migrator.proto.MigratorGrpc;
-import com.vaticle.typedb.core.migrator.proto.MigratorProto;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
