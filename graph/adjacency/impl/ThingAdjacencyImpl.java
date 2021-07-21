@@ -113,8 +113,8 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
         @Override
         public FunctionalIterator.Sorted<ThingVertex> from() {
             return adjacency.direction.isOut() ?
-                    directedEdges.mapSorted(sortable -> sortable.getEdge().from()).distinct() :
-                    directedEdges.mapSorted(sortable -> sortable.getEdge().from(), vertex -> adjacency.asDirected(
+                    directedEdges.mapSorted(directedEdge -> directedEdge.getEdge().from()).distinct() :
+                    directedEdges.mapSorted(directedEdge -> directedEdge.getEdge().from(), vertex -> adjacency.asDirected(
                             new ThingEdgeImpl.Target(encoding, adjacency.owner(), vertex, optimisedType)
                     ));
         }
@@ -122,10 +122,10 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
         @Override
         public FunctionalIterator.Sorted<ThingVertex> to() {
             return adjacency.direction.isOut() ?
-                    directedEdges.mapSorted(sortable -> sortable.getEdge().to(), vertex -> adjacency.asDirected(
+                    directedEdges.mapSorted(directedEdge -> directedEdge.getEdge().to(), vertex -> adjacency.asDirected(
                             new ThingEdgeImpl.Target(encoding, adjacency.owner(), vertex, optimisedType)
-                    ))
-                    : directedEdges.mapSorted(sortable -> sortable.getEdge().to()).distinct();
+                    )) :
+                    directedEdges.mapSorted(directedEdge -> directedEdge.getEdge().to()).distinct();
         }
 
         @Override
@@ -411,12 +411,12 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
 
             @Override
             public void delete(Encoding.Edge.Thing encoding) {
-                bufferedEdgeIterator(encoding, new IID[0]).forEachRemaining(sortable -> sortable.getEdge().delete());
+                bufferedEdgeIterator(encoding, new IID[0]).forEachRemaining(directedEdge -> directedEdge.getEdge().delete());
             }
 
             @Override
             public void delete(Encoding.Edge.Thing encoding, IID... lookAhead) {
-                bufferedEdgeIterator(encoding, lookAhead).forEachRemaining(sortable -> sortable.getEdge().delete());
+                bufferedEdgeIterator(encoding, lookAhead).forEachRemaining(directedEdge -> directedEdge.getEdge().delete());
             }
         }
 
@@ -441,7 +441,7 @@ public abstract class ThingAdjacencyImpl implements ThingAdjacency {
                 FunctionalIterator.Sorted.Forwardable<DirectedEdge> storageIter = owner.graph().storage().iterate(prefix)
                         .mapSorted(
                                 kv -> asDirected(cache(newPersistedEdge(EdgeIID.Thing.of(kv.key())))),
-                                sortable -> KeyValue.of(sortable.iid().bytes(), ByteArray.empty())
+                                directedEdge -> KeyValue.of(directedEdge.iid().bytes(), ByteArray.empty())
                         );
                 FunctionalIterator.Sorted.Forwardable<DirectedEdge> bufferedIter = bufferedEdgeIterator(encoding, lookahead);
                 return bufferedIter.merge(storageIter).distinct();
