@@ -337,6 +337,10 @@ public class Traversal {
         return structure;
     }
 
+    public Parameters parameters() {
+        return parameters;
+    }
+
     public static class Parameters {
 
         private final Map<Identifier.Variable, VertexIID.Thing> iids;
