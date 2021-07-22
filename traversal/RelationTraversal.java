@@ -26,33 +26,50 @@ import com.vaticle.typedb.core.graph.iid.VertexIID;
 import com.vaticle.typedb.core.traversal.common.Identifier;
 import com.vaticle.typedb.core.traversal.common.VertexMap;
 import com.vaticle.typedb.core.traversal.iterator.RelationIterator;
+import com.vaticle.typedb.core.traversal.structure.StructureVertex;
 
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
 public class RelationTraversal extends Traversal {
 
-    private final Identifier.Variable relation;
+    private final Identifier.Variable.Retrievable relation;
+    private final Set<Identifier.Variable.Retrievable> players;
     private int relationPlayers;
 
-    public RelationTraversal(Identifier.Variable relation, Set<Label> types) {
+    public RelationTraversal(Identifier.Variable.Retrievable relation, Set<Label> types) {
         super();
         this.relation = relation;
-        structure.thingVertex(relation).props().types(types);
+        this.structure.thingVertex(relation).props().types(types);
+        this.players = new HashSet<>();
     }
 
     FunctionalIterator<VertexMap> iterator(GraphManager graphMgr) {
         return new RelationIterator(this, graphMgr);
     }
 
-    public void player(Identifier.Variable thing, ByteArray iid, Set<Label> roleTypes) {
+    public void player(Identifier.Variable.Retrievable thing, ByteArray iid, Set<Label> roleTypes) {
         VertexIID.Thing vertexIID = VertexIID.Thing.of(iid);
         if (parameters.getIID(thing) == null) {
+            players.add(thing);
             structure.thingVertex(thing).props().hasIID(true);
             parameters.putIID(thing, vertexIID);
         } else assert parameters.getIID(thing).equals(vertexIID);
         structure.rolePlayer(structure.thingVertex(relation), structure.thingVertex(thing), roleTypes, relationPlayers);
         relationPlayers++;
+    }
+
+    public Identifier.Variable.Retrievable relationIdentifier() {
+        return relation;
+    }
+
+    public StructureVertex.Thing relationVertex() {
+        return structure.thingVertex(relation);
+    }
+
+    public Set<Identifier.Variable.Retrievable> players() {
+        return players;
     }
 
     @Override
