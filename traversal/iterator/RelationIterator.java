@@ -147,7 +147,7 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
     private void proposeNext() {
         assert state == State.EMPTY;
         FunctionalIterator.Sorted<ThingVertex> relationIterator = getIterator(proposer);
-        scoped.clear(); // TODO: comment
+        scoped.clear(); // relationIterator requires clearing of scoped roles as it is stateful
         while (relationIterator.hasNext()) {
             ThingVertex newRelation = relationIterator.next();
             if (!newRelation.equals(relation)) {
