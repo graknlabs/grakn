@@ -19,8 +19,10 @@
 package com.vaticle.typedb.core.reasoner.resolution;
 
 import com.vaticle.typedb.common.collection.ConcurrentSet;
+import com.vaticle.typedb.common.collection.Pair;
 import com.vaticle.typedb.core.common.exception.TypeDBException;
 import com.vaticle.typedb.core.concept.ConceptManager;
+import com.vaticle.typedb.core.concept.answer.ConceptMap;
 import com.vaticle.typedb.core.concurrent.actor.Actor;
 import com.vaticle.typedb.core.concurrent.actor.ActorExecutorGroup;
 import com.vaticle.typedb.core.logic.LogicManager;
@@ -28,12 +30,16 @@ import com.vaticle.typedb.core.logic.Rule;
 import com.vaticle.typedb.core.logic.resolvable.Concludable;
 import com.vaticle.typedb.core.logic.resolvable.Negated;
 import com.vaticle.typedb.core.logic.resolvable.Resolvable;
+import com.vaticle.typedb.core.logic.resolvable.Retrievable;
+import com.vaticle.typedb.core.logic.resolvable.Unifier;
 import com.vaticle.typedb.core.pattern.Conjunction;
 import com.vaticle.typedb.core.pattern.Disjunction;
 import com.vaticle.typedb.core.pattern.equivalence.AlphaEquivalence;
 import com.vaticle.typedb.core.reasoner.resolution.answer.AnswerState.Top.Explain;
 import com.vaticle.typedb.core.reasoner.resolution.answer.AnswerState.Top.Match;
 import com.vaticle.typedb.core.reasoner.resolution.framework.Resolver;
+import com.vaticle.typedb.core.reasoner.resolution.resolver.BoundConcludableResolver;
+import com.vaticle.typedb.core.reasoner.resolution.resolver.BoundRetrievableResolver;
 import com.vaticle.typedb.core.reasoner.resolution.resolver.ConcludableResolver;
 import com.vaticle.typedb.core.reasoner.resolution.resolver.ConclusionResolver;
 import com.vaticle.typedb.core.reasoner.resolution.resolver.ConditionResolver;
@@ -49,6 +55,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -69,6 +76,7 @@ public class ResolverRegistry {
 
     private final ConceptManager conceptMgr;
     private final LogicManager logicMgr;
+    private final Map<Pair<Actor.Driver<? extends Resolver<?>>, Integer>, Set<Actor.Driver<BoundConcludableResolver>>> reiterationQueryRespondents;
     private final Map<Concludable, Actor.Driver<ConcludableResolver>> concludableResolvers;
     private final ConcurrentMap<Rule, Actor.Driver<ConditionResolver>> ruleConditions;
     private final ConcurrentMap<Rule, Actor.Driver<ConclusionResolver>> ruleConclusions; // by Rule not Rule.Conclusion because well defined equality exists
@@ -85,6 +93,7 @@ public class ResolverRegistry {
         this.conceptMgr = conceptMgr;
         this.logicMgr = logicMgr;
         this.concludableResolvers = new HashMap<>();
+        this.reiterationQueryRespondents = new HashMap<>();
         this.ruleConditions = new ConcurrentHashMap<>();
         this.ruleConclusions = new ConcurrentHashMap<>();
         this.resolvers = new ConcurrentSet<>();
@@ -92,15 +101,13 @@ public class ResolverRegistry {
         this.resolutionTracing = resolutionTracing;
     }
 
-    public Set<Actor.Driver<ConcludableResolver>> concludableResolvers() {
-        return new HashSet<>(concludableResolvers.values());
+    public Set<Actor.Driver<BoundConcludableResolver>> reiterationQueryRespondents(Actor.Driver<? extends Resolver<?>> root, int iteration) {
+        return reiterationQueryRespondents.computeIfAbsent(new Pair<>(root, iteration), p -> new HashSet<>());
     }
 
     public void terminateResolvers(Throwable cause) {
         if (terminated.compareAndSet(false, true)) {
-            resolvers.forEach(actor -> {
-                actor.execute(r -> r.terminate(cause));
-            });
+            resolvers.forEach(actor -> actor.execute(r -> r.terminate(cause)));
         }
     }
 
@@ -188,7 +195,31 @@ public class ResolverRegistry {
         return ResolverView.retrievable(resolver, retrievable.retrieves());
     }
 
+    public Actor.Driver<BoundRetrievableResolver> registerBoundRetrievable(Retrievable retrievable, ConceptMap bounds) {
+        LOG.debug("Register BoundRetrievableResolver, pattern: {} bounds: {}", retrievable.pattern(), bounds);
+        Actor.Driver<BoundRetrievableResolver> resolver = Actor.driver(driver -> new BoundRetrievableResolver(
+                driver, retrievable, bounds, this, traversalEngine, conceptMgr, resolutionTracing
+        ), executorService);
+        resolvers.add(resolver);
+        if (terminated.get()) throw TypeDBException.of(RESOLUTION_TERMINATED); // guard races without synchronized
+        return resolver;
+    }
+
+    public Actor.Driver<BoundConcludableResolver> registerBoundConcludable(
+            Concludable concludable, ConceptMap bounds, Map<Actor.Driver<ConclusionResolver>, Rule> resolverRules,
+            LinkedHashMap<Actor.Driver<ConclusionResolver>, Set<Unifier>> applicableRules,
+            Actor.Driver<? extends Resolver<?>> root, int iteration) {
+        LOG.debug("Register BoundConcludableResolver, pattern: {} bounds: {}", concludable.pattern(), bounds);
+        Actor.Driver<BoundConcludableResolver> resolver = Actor.driver(driver -> new BoundConcludableResolver(
+                driver, concludable, bounds, resolverRules, applicableRules, this, traversalEngine, conceptMgr, resolutionTracing
+        ), executorService);
+        resolvers.add(resolver);
+        reiterationQueryRespondents.computeIfAbsent(new Pair<>(root, iteration), r -> new HashSet<>()).add(resolver);
+        if (terminated.get()) throw TypeDBException.of(RESOLUTION_TERMINATED); // guard races without synchronized
+        return resolver;
+    }
     // note: must be thread safe. We could move to a ConcurrentHashMap if we create an alpha-equivalence wrapper
+
     private synchronized ResolverView.MappedConcludable registerConcludable(Concludable concludable) {
         LOG.debug("Register ConcludableResolver: '{}'", concludable.pattern());
         for (Map.Entry<Concludable, Actor.Driver<ConcludableResolver>> c : concludableResolvers.entrySet()) {

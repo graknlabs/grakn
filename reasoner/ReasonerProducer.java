@@ -33,14 +33,11 @@ import com.vaticle.typedb.core.reasoner.resolution.framework.Request;
 import com.vaticle.typedb.core.reasoner.resolution.framework.ResolutionTracer;
 import com.vaticle.typedb.core.reasoner.resolution.framework.Resolver;
 import com.vaticle.typedb.core.traversal.common.Identifier;
-import com.vaticle.typeql.lang.pattern.variable.UnboundVariable;
-import com.vaticle.typeql.lang.query.TypeQLMatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -125,8 +122,7 @@ public class ReasonerProducer implements Producer<ConceptMap> {
     }
 
     @Override
-    public void recycle() {
-    }
+    public void recycle() {}
 
     // note: root resolver calls this single-threaded, so is thread safe
     private void requestAnswered(Finished answer) {
@@ -144,7 +140,7 @@ public class ReasonerProducer implements Producer<ConceptMap> {
     private void requestFailed(int iteration) {
         LOG.trace("Failed to find answer to request in iteration: " + iteration);
         if (options.traceInference()) ResolutionTracer.get().finish();
-        if (resolverRegistry.concludableResolvers().size() == 0) {
+        if (resolverRegistry.reiterationQueryRespondents(rootResolver, iteration).size() == 0) {
             finish();
         } else if (!sentReiterationRequests && iteration == this.iteration) {
             sendReiterationRequests();
@@ -152,17 +148,27 @@ public class ReasonerProducer implements Producer<ConceptMap> {
     }
 
     private void finish() {
-        // query is completely terminated
-        done = true;
-        queue.done();
-        required.set(0);
+        if (!done) {
+            // query is completely terminated
+            done = true;
+            queue.done();
+            required.set(0);
+        }
+    }
+
+    private void exception(Throwable e) {
+        if (!done) {
+            done = true;
+            required.set(0);
+            queue.done(e);
+        }
     }
 
     private void sendReiterationRequests() {
         assert reiterationQueryRespondents == null || reiterationQueryRespondents.isEmpty();
         sentReiterationRequests = true;
-        reiterationQueryRespondents = new HashSet<>(resolverRegistry.concludableResolvers());
-        resolverRegistry.concludableResolvers()
+        reiterationQueryRespondents = new HashSet<>(resolverRegistry.reiterationQueryRespondents(rootResolver, iteration));
+        resolverRegistry.reiterationQueryRespondents(rootResolver, iteration)
                 .forEach(res -> res.execute(actor -> actor.receiveReiterationQuery(reiterationRequest)));
     }
 
@@ -178,14 +184,6 @@ public class ReasonerProducer implements Producer<ConceptMap> {
             } else {
                 finish();
             }
-        }
-    }
-
-    private void exception(Throwable e) {
-        if (!done) {
-            done = true;
-            required.set(0);
-            queue.done(e);
         }
     }
 
