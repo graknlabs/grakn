@@ -283,7 +283,7 @@ public class DataImporter {
         private void commitBatch() {
             transaction.commit();
             // TODO use .asData() to do the cast
-            ((RocksTransaction.Data) transaction).bufferedToPersistedThingIIDs().forEachRemaining(pair -> {
+            ((RocksTransaction.Data) transaction).committedIIDs().forEachRemaining(pair -> {
                 idMapper.put(bufferedIIDsToOriginalIds.get(pair.first()), pair.second());
             });
             bufferedIIDsToOriginalIds.clear();
