@@ -1065,7 +1065,7 @@ public abstract class PlannerEdge<VERTEX_FROM extends PlannerVertex<?>, VERTEX_T
                         Set<TypeVertex> attTypes = null;
                         Map<TypeVertex, Set<TypeVertex>> ownerToAttributeTypes = new HashMap<>();
 
-                        if (isSelfClosure() || to().props().hasIID()) {
+                        if (isSelfClosure()) {
                             setObjectiveCoefficient(1);
                             return;
                         }
@@ -1099,7 +1099,11 @@ public abstract class PlannerEdge<VERTEX_FROM extends PlannerVertex<?>, VERTEX_T
                         for (TypeVertex owner : ownerToAttributeTypes.keySet()) {
                             double div = graphMgr.data().stats().thingVertexCount(owner);
                             if (div > 0) {
-                                cost += graphMgr.data().stats().hasEdgeSum(owner, ownerToAttributeTypes.get(owner)) / div;
+                                long totalHasEdges;
+                                if (to().props().hasIID()) totalHasEdges = 1;
+                                else if (to().props().hasEqualityPredicate()) totalHasEdges = ownerToAttributeTypes.get(owner).size();
+                                else totalHasEdges = graphMgr.data().stats().hasEdgeSum(owner, ownerToAttributeTypes.get(owner));
+                                cost +=  totalHasEdges / div;
                             }
                         }
                         assert !ownerToAttributeTypes.isEmpty();
@@ -1121,7 +1125,7 @@ public abstract class PlannerEdge<VERTEX_FROM extends PlannerVertex<?>, VERTEX_T
                         Set<TypeVertex> attTypes = null;
                         Map<TypeVertex, Set<TypeVertex>> attributeTypesToOwners = new HashMap<>();
 
-                        if (isSelfClosure() || to().props().hasIID()) {
+                        if (isSelfClosure()) {
                             setObjectiveCoefficient(1);
                             return;
                         }
@@ -1149,10 +1153,14 @@ public abstract class PlannerEdge<VERTEX_FROM extends PlannerVertex<?>, VERTEX_T
                         }
 
                         double cost = 0.0;
-                        for (TypeVertex owner : attributeTypesToOwners.keySet()) {
-                            double div = graphMgr.data().stats().thingVertexCount(owner);
+                        for (TypeVertex attribute : attributeTypesToOwners.keySet()) {
+                            double div = graphMgr.data().stats().thingVertexCount(attribute);
                             if (div > 0) {
-                                cost += graphMgr.data().stats().hasEdgeSum(attributeTypesToOwners.get(owner), owner) / div;
+                                long totalHasEdges;
+                                if (to().props().hasIID()) totalHasEdges = 1;
+                                else if (to().props().hasEqualityPredicate()) totalHasEdges = attributeTypesToOwners.get(attribute).size();
+                                else totalHasEdges = graphMgr.data().stats().hasEdgeSum(attributeTypesToOwners.get(attribute), attribute);
+                                cost +=  totalHasEdges/ div;
                             }
                         }
                         assert !attributeTypesToOwners.isEmpty();
