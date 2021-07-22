@@ -20,8 +20,6 @@ package com.vaticle.typedb.core.migrator;
 
 import com.vaticle.typedb.core.common.exception.ErrorMessage;
 import com.vaticle.typedb.core.common.exception.TypeDBException;
-import com.vaticle.typedb.core.migrator.proto.MigratorGrpc;
-import com.vaticle.typedb.core.migrator.proto.MigratorProto;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -35,53 +33,86 @@ import java.util.concurrent.CountDownLatch;
 //       and it should be able to stream import/export file to/from the server
 public class MigratorClient {
 
-    private final MigratorGrpc.MigratorStub streamingStub;
+    private final MigratorGrpc.MigratorStub stub;
 
     public MigratorClient(int serverPort) {
         String uri = "localhost:" + serverPort;
         ManagedChannel channel = ManagedChannelBuilder.forTarget(uri).usePlaintext().build();
-        streamingStub = MigratorGrpc.newStub(channel);
+        stub = MigratorGrpc.newStub(channel);
     }
 
     public boolean importData(String database, String filename, Map<String, String> remapLabels) {
-        MigratorProto.ImportData.Req req = MigratorProto.ImportData.Req.newBuilder()
+        MigratorProto.Import.Req req = MigratorProto.Import.Req.newBuilder()
                 .setDatabase(database)
                 .setFilename(filename)
                 .putAllRemapLabels(remapLabels)
                 .build();
-        ResponseObserver streamObserver = new ResponseObserver(new ProgressPrinter("import"));
-        streamingStub.importData(req, streamObserver);
+        ResponseObserver.Import streamObserver = new ResponseObserver.Import(new ProgressPrinter.Import());
+        stub.importData(req, streamObserver);
         streamObserver.await();
         return streamObserver.success();
     }
 
     public boolean exportData(String database, String filename) {
-        MigratorProto.ExportData.Req req = MigratorProto.ExportData.Req.newBuilder()
+        MigratorProto.Export.Req req = MigratorProto.Export.Req.newBuilder()
                 .setDatabase(database)
                 .setFilename(filename)
                 .build();
-        ResponseObserver streamObserver = new ResponseObserver(new ProgressPrinter("export"));
-        streamingStub.exportData(req, streamObserver);
+        ResponseObserver.Export streamObserver = new ResponseObserver.Export(new ProgressPrinter.Export());
+        stub.exportData(req, streamObserver);
         streamObserver.await();
         return streamObserver.success();
     }
 
-    static class ResponseObserver implements StreamObserver<MigratorProto.Job.Res> {
+    static abstract class ResponseObserver<T> implements StreamObserver<T> {
 
-        private final ProgressPrinter progressPrinter;
         private final CountDownLatch latch;
         private boolean success;
 
-        public ResponseObserver(ProgressPrinter progressPrinter) {
-            this.progressPrinter = progressPrinter;
+        public ResponseObserver() {
             this.latch = new CountDownLatch(1);
         }
 
-        @Override
-        public void onNext(MigratorProto.Job.Res res) {
-            long current = res.getProgress().getCurrent();
-            long total = res.getProgress().getTotal();
-            progressPrinter.onProgress(current, total);
+        private static class Import extends ResponseObserver<MigratorProto.Import.Progress> {
+
+            private final ProgressPrinter.Import progressPrinter;
+
+            public Import(ProgressPrinter.Import progressPrinter) {
+                super();
+                this.progressPrinter = progressPrinter;
+            }
+
+            @Override
+            public void onNext(MigratorProto.Import.Progress progress) {
+                progressPrinter.onProgress(progress);
+            }
+
+            @Override
+            public void onCompleted() {
+                super.onCompleted();
+                progressPrinter.onCompleted();
+            }
+        }
+
+        private static class Export extends ResponseObserver<MigratorProto.Export.Progress> {
+
+            private final ProgressPrinter.Export progressPrinter;
+
+            public Export(ProgressPrinter.Export progressPrinter) {
+                super();
+                this.progressPrinter = progressPrinter;
+            }
+
+            @Override
+            public void onNext(MigratorProto.Export.Progress progress) {
+                progressPrinter.onProgress(progress);
+            }
+
+            @Override
+            public void onCompleted() {
+                super.onCompleted();
+                progressPrinter.onCompleted();
+            }
         }
 
         @Override
@@ -93,7 +124,6 @@ public class MigratorClient {
 
         @Override
         public void onCompleted() {
-            progressPrinter.onCompletion();
             success = true;
             latch.countDown();
         }
@@ -111,25 +141,21 @@ public class MigratorClient {
         }
     }
 
-    private static class ProgressPrinter {
+    private static abstract class ProgressPrinter {
 
         private static final String[] ANIM = new String[]{"-", "\\", "|", "/"};
         private static final String STATUS_STARTING = "starting";
         private static final String STATUS_IN_PROGRESS = "in progress";
         private static final String STATUS_COMPLETED = "completed";
 
-        private final String type;
         private final Timer timer = new Timer();
 
-        private String status = STATUS_STARTING;
-        private long current = 0;
-        private long total = 0;
+        String status = STATUS_STARTING;
 
         private int anim = 0;
         private int lines = 0;
 
-        public ProgressPrinter(String type) {
-            this.type = type;
+        public ProgressPrinter() {
             TimerTask task = new TimerTask() {
                 @Override
                 public void run() {
@@ -139,38 +165,24 @@ public class MigratorClient {
             timer.scheduleAtFixedRate(task, 0, 100);
         }
 
-        public void onProgress(long current, long total) {
-            status = STATUS_IN_PROGRESS;
-            this.current = current;
-            this.total = total;
-        }
-
-        public void onCompletion() {
+        public void onCompleted() {
             status = STATUS_COMPLETED;
             step();
             timer.cancel();
         }
 
+        abstract String type();
+
+        abstract String formattedProgress();
+
         private synchronized void step() {
             StringBuilder builder = new StringBuilder();
-            builder.append(String.format("$x isa %s,\n    has status \"%s\"", type, status));
+            builder.append(String.format("$x isa %s,\n    has status \"%s\";", type(), status));
 
-            if (status.equals(STATUS_IN_PROGRESS)) {
-                String percent;
-                String count;
-                if (total > 0) {
-                    percent = String.format("%.1f%%", (double) current / (double) total * 100.0);
-                    count = String.format("%,d / %,d", current, total);
-                } else {
-                    percent = "?";
-                    count = String.format("%,d", current);
-                }
-                builder.append(String.format(",\n    has progress (%s),\n    has count (%s)",
-                                             percent, count));
-            }
-
-            builder.append(";");
-            if (status.equals(STATUS_IN_PROGRESS)) {
+            if (!status.equals(STATUS_STARTING)) {
+                builder.append("\n\n");
+                builder.append(formattedProgress());
+                builder.append(";");
                 anim = (anim + 1) % ANIM.length;
                 builder.append(" ").append(ANIM[anim]);
             }
@@ -179,6 +191,86 @@ public class MigratorClient {
             System.out.println((lines > 0 ? "\033[" + lines + "F\033[J" : "") + output);
 
             lines = output.split("\n").length;
+        }
+
+        private static class Import extends ProgressPrinter {
+
+            private MigratorProto.Import.Progress prog;
+
+            void onProgress(MigratorProto.Import.Progress progress) {
+                this.status = STATUS_IN_PROGRESS;
+                this.prog = progress;
+            }
+
+            @Override
+            String formattedProgress() {
+                StringBuilder progressStr = new StringBuilder();
+                progressStr.append(prog.getAttributes() == 0 ?
+                        String.format("Attribute: %d", prog.getAttributesCurrent()) :
+                        String.format("Attribute: %d/%d (%.1f%%)", prog.getAttributesCurrent(), prog.getAttributes(),
+                                100.0 * prog.getAttributesCurrent() / prog.getAttributes()));
+                progressStr.append("\n");
+                progressStr.append(prog.getEntities() == 0 ?
+                        String.format("Entity: %d", prog.getEntitiesCurrent()) :
+                        String.format("Entity: %d/%d (%.1f%%)", prog.getEntitiesCurrent(), prog.getEntities(),
+                                100.0 * prog.getEntitiesCurrent() / prog.getEntities()));
+                progressStr.append("\n");
+                progressStr.append(prog.getRelations() == 0 ?
+                        String.format("Relation: %d", prog.getRelationsCurrent()) :
+                        String.format("Relation: %d/%d (%.1f%%)", prog.getRelationsCurrent(), prog.getRelations(),
+                                100.0 * prog.getRelationsCurrent() / prog.getRelations()));
+                progressStr.append("\n");
+                long currentThings = prog.getAttributesCurrent() + prog.getEntitiesCurrent() + prog.getRelationsCurrent();
+                long things = prog.getAttributes() + prog.getEntities() + prog.getRelations();
+                progressStr.append("\n");
+                progressStr.append(String.format("Total: %d/%d (%.1f%%)", currentThings, things, 100.0 * currentThings / things));
+                return progressStr.toString();
+            }
+
+            @Override
+            String type() {
+                return "Import";
+            }
+        }
+
+        private static class Export extends ProgressPrinter {
+
+            private MigratorProto.Export.Progress prog;
+
+            void onProgress(MigratorProto.Export.Progress progress) {
+                this.status = STATUS_IN_PROGRESS;
+                this.prog = progress;
+            }
+
+            @Override
+            String formattedProgress() {
+                StringBuilder progressStr = new StringBuilder();
+                progressStr.append(prog.getAttributes() == 0 ?
+                        String.format("Attribute: %d", prog.getAttributesCurrent()) :
+                        String.format("Attribute: %d/%d (%.1f%%)", prog.getAttributesCurrent(), prog.getAttributes(),
+                                100.0 * prog.getAttributesCurrent() / prog.getAttributes()));
+                progressStr.append("\n");
+                progressStr.append(prog.getEntities() == 0 ?
+                        String.format("Entity: %d", prog.getEntitiesCurrent()) :
+                        String.format("Entity: %d/%d (%.1f%%)", prog.getEntitiesCurrent(), prog.getEntities(),
+                                100.0 * prog.getEntitiesCurrent() / prog.getEntities()));
+                progressStr.append("\n");
+                progressStr.append(prog.getRelations() == 0 ?
+                        String.format("Relation: %d", prog.getRelationsCurrent()) :
+                        String.format("Relation: %d/%d (%.1f%%)", prog.getRelationsCurrent(), prog.getRelations(),
+                                100.0 * prog.getRelationsCurrent() / prog.getRelations()));
+                progressStr.append("\n");
+                long currentThings = prog.getAttributesCurrent() + prog.getEntitiesCurrent() + prog.getRelationsCurrent();
+                long things = prog.getAttributes() + prog.getEntities() + prog.getRelations();
+                progressStr.append("\n");
+                progressStr.append(String.format("Total: %d/%d (%.1f%%)", currentThings, things, 100.0 * currentThings / things));
+                return progressStr.toString();
+            }
+
+            @Override
+            String type() {
+                return "Export";
+            }
         }
     }
 }

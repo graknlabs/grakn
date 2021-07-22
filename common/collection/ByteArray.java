@@ -54,7 +54,6 @@ public abstract class ByteArray implements Comparable<ByteArray> {
         return new ByteArray.Base(new byte[]{});
     }
 
-
     public abstract byte[] getBytes();
 
     public abstract byte[] cloneBytes();

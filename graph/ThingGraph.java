@@ -87,6 +87,7 @@ public class ThingGraph {
     private final ConcurrentMap<VertexIID.Type, ConcurrentSet<ThingVertex.Write>> thingsByTypeIID;
     private final AttributesByIID attributesByIID;
     private final Statistics statistics;
+    private final Map<VertexIID.Thing, VertexIID.Thing> bufferedToPersistedIIDs;
     private boolean isModified;
 
     public ThingGraph(Storage.Data storage, TypeGraph typeGraph) {
@@ -97,6 +98,7 @@ public class ThingGraph {
         thingsByTypeIID = new ConcurrentHashMap<>();
         attributesByIID = new AttributesByIID();
         statistics = new Statistics(typeGraph, storage);
+        bufferedToPersistedIIDs = new HashMap<>();
     }
 
     public Storage.Data storage() {
@@ -436,6 +438,10 @@ public class ThingGraph {
         statistics.clear();
     }
 
+    public Map<VertexIID.Thing, VertexIID.Thing> committedIIDs() {
+        return bufferedToPersistedIIDs;
+    }
+
     /**
      * Commits all the writes captured in this graph into storage.
      *
@@ -447,7 +453,6 @@ public class ThingGraph {
      * anyways, we don't need to parallelise the streams to commit the vertices.
      */
     public void commit() {
-        Map<VertexIID.Thing, VertexIID.Thing> bufferedToPersistedIIDs = new HashMap<>();
         iterate(thingsByIID.values()).filter(v -> v.status().equals(BUFFERED) && !v.isInferred()).forEachRemaining(v -> {
             VertexIID.Thing newIID = generate(storage.dataKeyGenerator(), v.type().iid(), v.type().properLabel());
             bufferedToPersistedIIDs.put(v.iid(), newIID);

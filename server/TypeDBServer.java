@@ -22,7 +22,6 @@ import com.vaticle.factory.tracing.client.FactoryTracing;
 import com.vaticle.factory.tracing.client.FactoryTracingThreadStatic;
 import com.vaticle.typedb.common.concurrent.NamedThreadFactory;
 import com.vaticle.typedb.common.util.Java;
-import com.vaticle.typedb.core.TypeDB;
 import com.vaticle.typedb.core.common.exception.TypeDBException;
 import com.vaticle.typedb.core.common.parameters.Options;
 import com.vaticle.typedb.core.concurrent.executor.Executors;
@@ -30,6 +29,7 @@ import com.vaticle.typedb.core.migrator.MigratorClient;
 import com.vaticle.typedb.core.migrator.MigratorService;
 import com.vaticle.typedb.core.rocks.Factory;
 import com.vaticle.typedb.core.rocks.RocksFactory;
+import com.vaticle.typedb.core.rocks.RocksTypeDB;
 import com.vaticle.typedb.core.server.common.RunOptions;
 import com.vaticle.typedb.core.server.common.ServerDefaults;
 import io.grpc.netty.NettyServerBuilder;
@@ -63,7 +63,7 @@ public class TypeDBServer implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(TypeDBServer.class);
 
     protected final Factory factory;
-    protected final TypeDB typedb;
+    protected final RocksTypeDB typedb;
     protected final io.grpc.Server server;
     protected final RunOptions.Server command;
     protected TypeDBService typeDBService;
