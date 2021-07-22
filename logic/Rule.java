@@ -560,19 +560,14 @@ public class Rule {
             private FunctionalIterator<com.vaticle.typedb.core.concept.thing.Relation> matchRelation(
                     RelationType relationType, ConceptMap whenConcepts,
                     TraversalEngine traversalEng, ConceptManager conceptMgr) {
-                RelationTraversal traversal = new RelationTraversal();
                 Identifier.Variable.Retrievable relationId = relation().owner().id();
-                traversal.types(relationId, set(relationType.getLabel())); // TODO include inheritance
+                RelationTraversal traversal = new RelationTraversal(relationId, set(relationType.getLabel())); // TODO include inheritance
                 relation().players().forEach(rp -> {
                     Identifier.Variable.Retrievable playerId = rp.player().id();
                     assert rp.roleType().isPresent() && rp.roleType().get().label().isPresent()
                             && whenConcepts.contains(playerId);
-                    traversal.rolePlayer(relationId, playerId,
-                            set(getRole(rp, relationType, whenConcepts).getLabel()), // TODO include inheritance
-                            rp.repetition());
-                    if (traversal.parameters().getIID(playerId) == null) {
-                        traversal.iid(playerId, whenConcepts.get(playerId).asThing().getIID());
-                    }
+                    traversal.player(playerId, whenConcepts.get(playerId).asThing().getIID(),
+                            set(getRole(rp, relationType, whenConcepts).getLabel())); // TODO include inheritance
                 });
                 return traversalEng.relations(traversal).map(conceptMgr::conceptMap)
                         .map(conceptMap -> conceptMap.get(relationId).asRelation());
