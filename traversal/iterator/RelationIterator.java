@@ -67,7 +67,6 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
     private final Map<Retrievable, Vertex<?, ?>> answer;
     private final Scoped scoped;
     private Retrievable relationId;
-    private Set<Label> relationTypes;
     private ThingVertex relation;
     private State state;
     private int relationProposer;
@@ -128,7 +127,6 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
     private boolean tryInitialise() {
         StructureVertex.Thing relationVertex = relationVertex();
         relationId = relationVertex.id().asVariable().asRetrievable();
-        relationTypes = relationVertex.asThing().props().types();
         return tryInitialiseFixedPlayers();
     }
 
