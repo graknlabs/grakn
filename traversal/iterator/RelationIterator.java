@@ -232,13 +232,16 @@ public class RelationIterator extends AbstractFunctionalIterator<VertexMap> {
         StructureEdge<?, ?> structureEdge = edges.get(edge);
         Retrievable playerId = structureEdge.to().id().asVariable().asRetrievable();
         ThingVertex player = answer.get(playerId).asThing();
-        assert relationVertex().asThing().props().types().size() == 1; // TODO relax this
-        TypeVertex relType = graphMgr.schema().getType(relationVertex().asThing().props().types().iterator().next());
+        Set<Label> relationTypes = relationVertex().props().types();
         List<Forwardable<KeyValue<ThingVertex, ThingVertex>>> relationIterators = new ArrayList<>();
         for (Label roleLabel : structureEdge.asNative().asRolePlayer().types()) {
             TypeVertex roleType =  graphMgr.schema().getType(roleLabel);
             relationIterators.add(player.ins()
-                    .edge(ROLEPLAYER, roleType, PrefixIID.of(relType.iid().encoding().instance()), relType.iid()).get()
+                    .edge(ROLEPLAYER, roleType).get()
+                    .filter(directedEdge -> {
+                        ThingVertex relation = directedEdge.getEdge().from();
+                        return relationTypes.contains(relation.type().properLabel());
+                    })
                     .mapSorted(
                             directedEdge -> {
                                 ThingVertex role = directedEdge.getEdge().optimised().get();
