@@ -140,7 +140,7 @@ public class ReasonerProducer implements Producer<ConceptMap> {
     private void requestFailed(int iteration) {
         LOG.trace("Failed to find answer to request in iteration: " + iteration);
         if (options.traceInference()) ResolutionTracer.get().finish();
-        if (resolverRegistry.boundConcludableResolvers().size() == 0) {
+        if (resolverRegistry.reiterationQueryRespondents(rootResolver, iteration).size() == 0) {
             finish();
         } else if (!sentReiterationRequests && iteration == this.iteration) {
             sendReiterationRequests();
@@ -148,17 +148,27 @@ public class ReasonerProducer implements Producer<ConceptMap> {
     }
 
     private void finish() {
-        // query is completely terminated
-        done = true;
-        queue.done();
-        required.set(0);
+        if (!done) {
+            // query is completely terminated
+            done = true;
+            queue.done();
+            required.set(0);
+        }
+    }
+
+    private void exception(Throwable e) {
+        if (!done) {
+            done = true;
+            required.set(0);
+            queue.done(e);
+        }
     }
 
     private void sendReiterationRequests() {
         assert reiterationQueryRespondents == null || reiterationQueryRespondents.isEmpty();
         sentReiterationRequests = true;
-        reiterationQueryRespondents = new HashSet<>(resolverRegistry.boundConcludableResolvers());
-        resolverRegistry.boundConcludableResolvers()
+        reiterationQueryRespondents = new HashSet<>(resolverRegistry.reiterationQueryRespondents(rootResolver, iteration));
+        resolverRegistry.reiterationQueryRespondents(rootResolver, iteration)
                 .forEach(res -> res.execute(actor -> actor.receiveReiterationQuery(reiterationRequest)));
     }
 
@@ -174,14 +184,6 @@ public class ReasonerProducer implements Producer<ConceptMap> {
             } else {
                 finish();
             }
-        }
-    }
-
-    private void exception(Throwable e) {
-        if (!done) {
-            done = true;
-            required.set(0);
-            queue.done(e);
         }
     }
 
